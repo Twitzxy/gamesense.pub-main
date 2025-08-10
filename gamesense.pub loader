@@ -158,39 +158,40 @@ contentFrame.BackgroundColor3 = COLORS.Background
 contentFrame.BorderSizePixel = 0
 contentFrame.Parent = mainFrame
 
--- Utility function: Fade frame in/out (Tween transparency)
+-- Improved FadeFrame function that waits for all tweens to complete
 local function FadeFrame(frame, fadeIn, duration)
     duration = duration or 0.25
     local goals = {}
 
     goals.BackgroundTransparency = fadeIn and 0 or 1
 
+    local tweens = {}
+    table.insert(tweens, TweenService:Create(frame, TweenInfo.new(duration), {BackgroundTransparency = goals.BackgroundTransparency}))
+
     for _, v in pairs(frame:GetChildren()) do
         if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("Frame") then
-            goals[v] = {
+            local props = {
                 BackgroundTransparency = fadeIn and 0 or 1,
                 TextTransparency = fadeIn and 0 or 1,
                 ImageTransparency = fadeIn and 0 or 1
             }
+            table.insert(tweens, TweenService:Create(v, TweenInfo.new(duration), props))
         end
     end
 
-    local tweens = {}
-    table.insert(tweens, TweenService:Create(frame, TweenInfo.new(duration), {BackgroundTransparency = goals.BackgroundTransparency}))
-
-    for child, props in pairs(goals) do
-        if child ~= "BackgroundTransparency" then
-            table.insert(tweens, TweenService:Create(child, TweenInfo.new(duration), props))
-        end
-    end
+    local completedCount = 0
+    local totalTweens = #tweens
 
     for _, tween in ipairs(tweens) do
         tween:Play()
+        tween.Completed:Connect(function()
+            completedCount = completedCount + 1
+        end)
     end
 
-    -- Wait for all tweens to finish
-    for _, tween in ipairs(tweens) do
-        tween.Completed:Wait()
+    -- Wait until all tweens complete
+    while completedCount < totalTweens do
+        task.wait(0.01)
     end
 end
 
@@ -230,21 +231,21 @@ local function CreateTab(name, yPos)
         Content = tabContent,
     }
 
-tabButton.MouseButton1Click:Connect(function()
-    if currentTabName == name then return end -- Already selected
+    tabButton.MouseButton1Click:Connect(function()
+        if currentTabName == name then return end -- Already selected
 
-    if currentTabName and tabs[currentTabName] then
-        local currentContent = tabs[currentTabName].Content
-        FadeFrame(currentContent, false)
-        currentContent.Visible = false
-    end
+        if currentTabName and tabs[currentTabName] then
+            local currentContent = tabs[currentTabName].Content
+            FadeFrame(currentContent, false)
+            currentContent.Visible = false
+        end
 
-    local newContent = tabContent
-    newContent.Visible = true
-    FadeFrame(newContent, true)
+        local newContent = tabContent
+        newContent.Visible = true
+        FadeFrame(newContent, true)
 
-    currentTabName = name
-end)
+        currentTabName = name
+    end)
 
     return tabButton, tabContent
 end
@@ -266,147 +267,14 @@ local function createPlaceholderTab(name, yPos, placeholderText)
 end
 
 -- Create tabs
-local mainTabButton, mainContent = CreateTab("MAIN", 0)
-local aimbotTabButton, aimbotContent = CreateTab("AIMBOT", 30)
-local visualsTabButton, visualsContent = CreateTab("VISUALS", 60)
-local miscTabButton, miscContent = CreateTab("MISC", 90)
+local mainTabButton, mainContent = createPlaceholderTab("Main", 0, "Main tab content here")
+local legitTabButton, legitContent = createPlaceholderTab("Legit", 30, "Legit tab content here")
+local rageTabButton, rageContent = createPlaceholderTab("Rage", 60, "Rage tab content here")
+local visualsTabButton, visualsContent = createPlaceholderTab("Visuals", 90, "Visuals tab content here")
+local miscTabButton, miscContent = createPlaceholderTab("Misc", 120, "Misc tab content here")
+local configTabButton, configContent = createPlaceholderTab("Config", 150, "Config tab content here")
 
--- MAIN tab content: CS:GO image in center
-local csgoImage = Instance.new("ImageLabel")
-csgoImage.Size = UDim2.new(0, 200, 0, 200)
-csgoImage.Position = UDim2.new(0.5, -100, 0.5, -100)
-csgoImage.AnchorPoint = Vector2.new(0.5, 0.5)
-csgoImage.BackgroundTransparency = 1
-csgoImage.Image = "rbxassetid://112154610367019"
-csgoImage.Parent = mainContent
-
-local function addPlaceholderText(parent, text)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 30)
-    label.Position = UDim2.new(0, 0, 0, 20)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = COLORS.Text
-    label.Font = Enum.Font.Code
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.Parent = parent
-end
-
-addPlaceholderText(visualsContent, "Visual enhancements coming soon...")
-addPlaceholderText(miscContent, "Miscellaneous settings coming soon...")
-
-
--- Utility: Toggle Control
-local function createToggle(parent, text, posY, default)
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, -20, 0, 30)
-    toggleFrame.Position = UDim2.new(0, 10, 0, posY)
-    toggleFrame.BackgroundColor3 = COLORS.Card
-    toggleFrame.BorderSizePixel = 0
-    toggleFrame.Parent = parent
-
-    local label = Instance.new("TextLabel")
-    label.Text = text
-    label.Font = Enum.Font.Code
-    label.TextSize = 14
-    label.TextColor3 = COLORS.Text
-    label.BackgroundTransparency = 1
-    label.Position = UDim2.new(0, 5, 0, 5)
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = toggleFrame
-
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 50, 0, 20)
-    button.Position = UDim2.new(1, -60, 0, 5)
-    button.Text = default and "ON" or "OFF"
-    button.Font = Enum.Font.Code
-    button.TextSize = 14
-    button.TextColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    button.BackgroundColor3 = COLORS.Background
-    button.BorderColor3 = COLORS.Border
-    button.Parent = toggleFrame
-
-    local state = default
-
-    button.MouseButton1Click:Connect(function()
-        state = not state
-        button.Text = state and "ON" or "OFF"
-        button.TextColor3 = state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-        print(text .. " toggled: " .. tostring(state))
-    end)
-
-    return toggleFrame, function() return state end
-end
-
--- Utility: Slider Control
-local function createSlider(parent, text, posY, min, max, default)
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, -20, 0, 50)
-    sliderFrame.Position = UDim2.new(0, 10, 0, posY)
-    sliderFrame.BackgroundColor3 = COLORS.Card
-    sliderFrame.BorderSizePixel = 0
-    sliderFrame.Parent = parent
-
-    local label = Instance.new("TextLabel")
-    label.Text = text .. ": " .. tostring(default)
-    label.Font = Enum.Font.Code
-    label.TextSize = 14
-    label.TextColor3 = COLORS.Text
-    label.BackgroundTransparency = 1
-    label.Position = UDim2.new(0, 5, 0, 5)
-    label.Size = UDim2.new(1, -10, 0, 20)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = sliderFrame
-
-    local sliderBar = Instance.new("Frame")
-    sliderBar.Size = UDim2.new(1, -20, 0, 10)
-    sliderBar.Position = UDim2.new(0, 10, 0, 35)
-    sliderBar.BackgroundColor3 = COLORS.Background
-    sliderBar.BorderColor3 = COLORS.Border
-    sliderBar.BorderSizePixel = 1
-    sliderBar.Parent = sliderFrame
-
-    local sliderFill = Instance.new("Frame")
-    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    sliderFill.BackgroundColor3 = COLORS.Accent
-    sliderFill.Parent = sliderBar
-
-    local sliderValue = default
-
-    local dragging = false
-    sliderBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
-    sliderBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    sliderBar.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relativePos = math.clamp(input.Position.X - sliderBar.AbsolutePosition.X, 0, sliderBar.AbsoluteSize.X)
-            local percent = relativePos / sliderBar.AbsoluteSize.X
-            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderValue = math.floor(min + percent * (max - min) + 0.5)
-            label.Text = text .. ": " .. tostring(sliderValue)
-            --print(text .. " set to " .. sliderValue)
-        end
-    end)
-
-    return sliderFrame, function() return sliderValue end
-end
-
--- AIMBOT tab content: Add toggles and slider example
-local aimbotEnabledToggle, isAimbotEnabled = createToggle(aimbotContent, "Enable Aimbot", 20, false)
-local aimbotFOVSlider, getAimbotFOV = createSlider(aimbotContent, "Aimbot FOV", 60, 1, 180, 90)
-
--- VISUALS tab content example: ESP toggle (placeholder functionality)
-local espToggle, isESPEnabled = createToggle(visualsContent, "Enable ESP", 20, false)
-
--- Start with MAIN tab selected by default
-mainTabButton.MouseButton1Click:Invoke() -- Manually trigger click to show MAIN tab content
+-- Show Main tab by default
+tabs["Main"].Content.Visible = true
+currentTabName = "Main"
 
