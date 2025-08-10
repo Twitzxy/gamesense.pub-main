@@ -230,25 +230,21 @@ local function CreateTab(name, yPos)
         Content = tabContent,
     }
 
-    tabButton.MouseButton1Click:Connect(function()
-        if currentTabName == name then return end -- Already selected
+tabButton.MouseButton1Click:Connect(function()
+    if currentTabName == name then return end -- Already selected
 
-        -- Fade out current content
-        if currentTabName and tabs[currentTabName] then
-            local currentContent = tabs[currentTabName].Content
-            coroutine.wrap(function()
-                FadeFrame(currentContent, false)
-                currentContent.Visible = false
-            end)()
-        end
+    if currentTabName and tabs[currentTabName] then
+        local currentContent = tabs[currentTabName].Content
+        FadeFrame(currentContent, false)
+        currentContent.Visible = false
+    end
 
-        -- Show new content
-        local newContent = tabContent
-        newContent.Visible = true
-        FadeFrame(newContent, true)
+    local newContent = tabContent
+    newContent.Visible = true
+    FadeFrame(newContent, true)
 
-        currentTabName = name
-    end)
+    currentTabName = name
+end)
 
     return tabButton, tabContent
 end
