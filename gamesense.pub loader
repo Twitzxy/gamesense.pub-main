@@ -1,6 +1,5 @@
 -- Roblox Services
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 -- UI Colors (Gamesense style)
 local COLORS = {
@@ -26,8 +25,7 @@ local gradientColors = {
 -- Create Main GUI
 local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "GameSenseMain"
-MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Ensure proper z-index handling
-MainGui.Parent = game:GetService("CoreGui")
+MainGui.Parent = game.CoreGui
 
 -- Main Frame
 local mainFrame = Instance.new("Frame")
@@ -82,37 +80,28 @@ end)
 -- Dragging for main frame
 local dragStartPos
 local frameStartPos
-local isDragging = false
-
-local function updateDrag(input)
-    local delta = input.Position - dragStartPos
-    mainFrame.Position = UDim2.new(
-        frameStartPos.X.Scale, 
-        frameStartPos.X.Offset + delta.X,
-        frameStartPos.Y.Scale,
-        frameStartPos.Y.Offset + delta.Y
-    )
-end
 
 mainTitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragStartPos = input.Position
         frameStartPos = mainFrame.Position
-        isDragging = true
-        
-        local connection
-        connection = input.Changed:Connect(function()
+        input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
-                isDragging = false
-                connection:Disconnect()
+                dragStartPos = nil
             end
         end)
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        updateDrag(input)
+mainTitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragStartPos then
+        local delta = input.Position - dragStartPos
+        mainFrame.Position = UDim2.new(
+            frameStartPos.X.Scale, 
+            frameStartPos.X.Offset + delta.X,
+            frameStartPos.Y.Scale,
+            frameStartPos.Y.Offset + delta.Y
+        )
     end
 end)
 
@@ -135,7 +124,7 @@ coroutine.wrap(function()
         t = t + speed * 0.03
         if t > 1 then t = 0 end
 
-        local index1 = math.floor(t * colorCount) % colorCount + 1
+        local index1 = math.floor(t * colorCount) + 1
         local index2 = index1 % colorCount + 1
         local lerpT = (t * colorCount) % 1
 
@@ -169,6 +158,7 @@ contentFrame.BackgroundColor3 = COLORS.Background
 contentFrame.BorderSizePixel = 0
 contentFrame.Parent = mainFrame
 
+-- Fixed FadeFrame function
 local function FadeFrame(frame, fadeIn, duration)
     duration = duration or 0.25
     local tweens = {}
@@ -181,19 +171,19 @@ local function FadeFrame(frame, fadeIn, duration)
     for _, v in pairs(frame:GetChildren()) do
         local goals = {}
 
-        -- BackgroundTransparency applies to Frame, TextLabel, TextButton, ImageLabel, etc.
+        -- BackgroundTransparency applies to Frame, TextLabel, TextButton, ImageLabel, ImageButton
         if v:IsA("Frame") or v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("ImageButton") then
-            goals.BackgroundTransparency = fadeIn and (v.BackgroundTransparency == 1 and 1 or 0) or 1
+            goals.BackgroundTransparency = fadeIn and 0 or 1
         end
 
         -- TextTransparency applies only to TextLabel and TextButton
         if v:IsA("TextLabel") or v:IsA("TextButton") then
-            goals.TextTransparency = fadeIn and (v.TextTransparency == 1 and 1 or 0) or 1
+            goals.TextTransparency = fadeIn and 0 or 1
         end
 
         -- ImageTransparency applies only to ImageLabel and ImageButton
         if v:IsA("ImageLabel") or v:IsA("ImageButton") then
-            goals.ImageTransparency = fadeIn and (v.ImageTransparency == 1 and 1 or 0) or 1
+            goals.ImageTransparency = fadeIn and 0 or 1
         end
 
         if next(goals) then
@@ -201,8 +191,18 @@ local function FadeFrame(frame, fadeIn, duration)
         end
     end
 
+    local completedCount = 0
+    local totalTweens = #tweens
+
     for _, tween in ipairs(tweens) do
         tween:Play()
+        tween.Completed:Connect(function()
+            completedCount = completedCount + 1
+        end)
+    end
+
+    while completedCount < totalTweens do
+        task.wait(0.01)
     end
 end
 
@@ -212,10 +212,7 @@ local currentTabName = nil
 
 local function HideAllTabs()
     for _, tab in pairs(tabs) do
-        if tab.Content then
-            FadeFrame(tab.Content, false, 0.1)
-            tab.Content.Visible = false
-        end
+        tab.Content.Visible = false
     end
 end
 
@@ -247,11 +244,16 @@ local function CreateTab(name, yPos)
 
     tabButton.MouseButton1Click:Connect(function()
         if currentTabName == name then return end -- Already selected
-        
-        HideAllTabs()
-        
-        tabContent.Visible = true
-        FadeFrame(tabContent, true)
+
+        if currentTabName and tabs[currentTabName] then
+            local currentContent = tabs[currentTabName].Content
+            FadeFrame(currentContent, false)
+            currentContent.Visible = false
+        end
+
+        local newContent = tabContent
+        newContent.Visible = true
+        FadeFrame(newContent, true)
 
         currentTabName = name
     end)
@@ -262,7 +264,6 @@ end
 -- Helper function: Create placeholder tab content with simple text
 local function createPlaceholderTab(name, yPos, placeholderText)
     local tabButton, tabContent = CreateTab(name, yPos)
-    
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 0, 30)
     label.Position = UDim2.new(0, 0, 0, 20)
@@ -273,19 +274,47 @@ local function createPlaceholderTab(name, yPos, placeholderText)
     label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Center
     label.Parent = tabContent
-    
     return tabButton, tabContent
 end
 
 -- Create tabs
-local mainTabButton, mainContent = createPlaceholderTab("Main", 0, "Main tab content here")
-local legitTabButton, legitContent = createPlaceholderTab("Legit", 30, "Legit tab content here")
-local rageTabButton, rageContent = createPlaceholderTab("Rage", 60, "Rage tab content here")
-local visualsTabButton, visualsContent = createPlaceholderTab("Visuals", 90, "Visuals tab content here")
-local miscTabButton, miscContent = createPlaceholderTab("Misc", 120, "Misc tab content here")
-local configTabButton, configContent = createPlaceholderTab("Config", 150, "Config tab content here")
+local mainTabButton, mainContent = CreateTab("MAIN", 0)
+local aimbotTabButton, aimbotContent = CreateTab("AIMBOT", 30)
+local visualsTabButton, visualsContent = CreateTab("VISUALS", 60)
+local miscTabButton, miscContent = CreateTab("MISC", 90)
 
--- Show Main tab by default
+-- MAIN tab content: CS:GO image in center
+local csgoImage = Instance.new("ImageLabel")
+csgoImage.Size = UDim2.new(0, 200, 0, 200)
+csgoImage.Position = UDim2.new(0.5, -100, 0.5, -100)
+csgoImage.AnchorPoint = Vector2.new(0.5, 0.5)
+csgoImage.BackgroundTransparency = 1
+csgoImage.Image = "rbxassetid://112154610367019"
+csgoImage.Parent = mainContent
+
+local function addPlaceholderText(parent, text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 30)
+    label.Position = UDim2.new(0, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = COLORS.Text
+    label.Font = Enum.Font.Code
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.Parent = parent
+end
+
+-- Aimbot tab placeholder
+addPlaceholderText(aimbotContent, "Aimbot settings go here...")
+
+-- Visuals tab placeholder
+addPlaceholderText(visualsContent, "Visuals settings go here...")
+
+-- Misc tab placeholder
+addPlaceholderText(miscContent, "Miscellaneous settings go here...")
+
+-- Show MAIN tab by default
 mainContent.Visible = true
-currentTabName = "Main"
-FadeFrame(mainContent, true, 0)
+FadeFrame(mainContent, true)
+currentTabName = "MAIN"
