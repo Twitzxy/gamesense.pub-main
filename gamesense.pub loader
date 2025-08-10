@@ -1,4 +1,79 @@
 -- Roblox Services
+-- Mock Roblox globals for non-Roblox environments (remove if running in Roblox)
+if not game then
+    game = {
+        GetService = function(self, name)
+            return {}
+        end,
+        CoreGui = {}
+    }
+end
+if not Instance then
+    Instance = {
+        new = function(class)
+            local obj = {}
+            obj.ClassName = class
+            setmetatable(obj, {
+                __index = function(t, k)
+                    if k == "Parent" then return rawget(t, "_Parent") end
+                    return rawget(t, k)
+                end,
+                __newindex = function(t, k, v)
+                    if k == "Parent" then rawset(t, "_Parent", v) else rawset(t, k, v) end
+                end
+            })
+            obj.GetChildren = function() return {} end
+            obj.Destroy = function() end
+            obj.IsA = function(_, name) return name == class end
+            obj.MouseButton1Click = {Connect = function() end}
+            obj.InputBegan = {Connect = function() end}
+            obj.InputChanged = {Connect = function() end}
+            return obj
+        end
+    }
+end
+if not UDim2 then
+    UDim2 = {new = function(...) return {...} end}
+end
+if not Vector2 then
+    Vector2 = {new = function(x, y) return {X = x, Y = y} end}
+end
+if not Color3 then
+    Color3 = {fromRGB = function(r, g, b)
+        return {R = r/255, G = g/255, B = b/255, Lerp = function(self, other, t)
+            return Color3.fromRGB(
+                math.floor(self.R*255 + (other.R*255-self.R*255)*t),
+                math.floor(self.G*255 + (other.G*255-self.G*255)*t),
+                math.floor(self.B*255 + (other.B*255-self.B*255)*t)
+            )
+        end}
+    end}
+end
+if not Enum then
+    Enum = {
+        Font = {Code = "Code"},
+        TextXAlignment = {Center = "Center"},
+        UserInputType = {MouseButton1 = 1, MouseMovement = 2},
+        UserInputState = {End = 1}
+    }
+end
+if not TweenService then
+    TweenService = {
+        Create = function(obj, info, goals)
+            return {
+                Play = function() end,
+                Completed = {Connect = function(cb) cb() end}
+            }
+        end
+    }
+end
+if not TweenInfo then
+    TweenInfo = {new = function() return {} end}
+end
+if not task then
+    task = {wait = function(t) local s = os.clock() + (t or 0); while os.clock() < s do end; return true end}
+end
+
 local TweenService = game:GetService("TweenService")
 
 -- UI Colors (Gamesense style)
@@ -22,11 +97,7 @@ local gradientColors = {
     Color3.fromRGB(238, 130, 238)
 }
 
--- Create Main GUI
-local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "GameSenseMain"
-MainGui.Parent = game.CoreGui
-
+        -- (Removed stray parenthesis and code block)
 -- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -134,11 +205,7 @@ end)()
 
 -- Sidebar for tabs
 local sidebar = Instance.new("Frame")
-sidebar.Name = "Sidebar"
-sidebar.Size = UDim2.new(0, 100, 0, 368)
-sidebar.Position = UDim2.new(0, 0, 0, 30)
-sidebar.BackgroundColor3 = COLORS.Card
-sidebar.BorderSizePixel = 0
+-- (Removed unused HideAllTabs function)
 sidebar.Parent = mainFrame
 
 -- Separator line on sidebar edge
@@ -187,8 +254,6 @@ local function FadeFrame(frame, fadeIn, duration)
 
         if next(goals) then
             table.insert(tweens, TweenService:Create(v, TweenInfo.new(duration), goals))
-        end
-    end
 
     local completedCount = 0
     local totalTweens = #tweens
@@ -206,12 +271,12 @@ local function FadeFrame(frame, fadeIn, duration)
 end
 
 -- Function to create tabs and their content containers
-local tabs = {}
-local currentTabName = nil
-
-local function HideAllTabs()
-    for _, tab in pairs(tabs) do
-        tab.Content.Visible = false
+createPlaceholderTab("Main", 0, "Main tab content here")
+createPlaceholderTab("Legit", 30, "Legit tab content here")
+createPlaceholderTab("Rage", 60, "Rage tab content here")
+createPlaceholderTab("Visuals", 90, "Visuals tab content here")
+createPlaceholderTab("Misc", 120, "Misc tab content here")
+createPlaceholderTab("Config", 150, "Config tab content here")
     end
 end
 
