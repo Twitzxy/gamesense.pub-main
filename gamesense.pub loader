@@ -276,3 +276,137 @@ createPlaceholderLabel(miscContent, "Miscellaneous settings coming soon...")
 -- Automatically select MAIN tab on open
 mainTabButton:MouseButton1Click()
 
+local function createToggle(parent, text, posY, default)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(1, -20, 0, 30)
+    toggleFrame.Position = UDim2.new(0, 10, 0, posY)
+    toggleFrame.BackgroundColor3 = COLORS.Card
+    toggleFrame.BorderSizePixel = 0
+    toggleFrame.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Font = Enum.Font.Code
+    label.TextSize = 14
+    label.TextColor3 = COLORS.Text
+    label.BackgroundTransparency = 1
+    label.Position = UDim2.new(0, 5, 0, 5)
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = toggleFrame
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 50, 0, 20)
+    button.Position = UDim2.new(1, -60, 0, 5)
+    button.Text = default and "ON" or "OFF"
+    button.Font = Enum.Font.Code
+    button.TextSize = 14
+    button.TextColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    button.BackgroundColor3 = COLORS.Background
+    button.BorderColor3 = COLORS.Border
+    button.Parent = toggleFrame
+
+    local state = default
+
+    button.MouseButton1Click:Connect(function()
+        state = not state
+        button.Text = state and "ON" or "OFF"
+        button.TextColor3 = state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        print(text .. " toggled: " .. tostring(state))
+    end)
+
+    return toggleFrame, function() return state end
+end
+
+local function createSlider(parent, text, posY, min, max, default)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, -20, 0, 50)
+    sliderFrame.Position = UDim2.new(0, 10, 0, posY)
+    sliderFrame.BackgroundColor3 = COLORS.Card
+    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Text = text .. ": " .. tostring(default)
+    label.Font = Enum.Font.Code
+    label.TextSize = 14
+    label.TextColor3 = COLORS.Text
+    label.BackgroundTransparency = 1
+    label.Position = UDim2.new(0, 5, 0, 5)
+    label.Size = UDim2.new(1, -10, 0, 20)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = sliderFrame
+
+    local sliderBackground = Instance.new("Frame")
+    sliderBackground.Size = UDim2.new(1, -10, 0, 10)
+    sliderBackground.Position = UDim2.new(0, 5, 0, 30)
+    sliderBackground.BackgroundColor3 = COLORS.Background
+    sliderBackground.BorderColor3 = COLORS.Border
+    sliderBackground.BorderSizePixel = 1
+    sliderBackground.Parent = sliderFrame
+
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.Position = UDim2.new(0, 0, 0, 0)
+    sliderFill.BackgroundColor3 = COLORS.Accent
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = sliderBackground
+
+    local dragging = false
+    local value = default
+
+    local function updateSlider(inputPos)
+        local relativeX = math.clamp(inputPos.X - sliderBackground.AbsolutePosition.X, 0, sliderBackground.AbsoluteSize.X)
+        local percent = relativeX / sliderBackground.AbsoluteSize.X
+        value = min + percent * (max - min)
+        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+        label.Text = text .. ": " .. string.format("%.1f", value)
+        print(text .. " set to: " .. string.format("%.1f", value))
+    end
+
+    sliderBackground.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateSlider(input.Position)
+        end
+    end)
+
+    sliderBackground.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    sliderBackground.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateSlider(input.Position)
+        end
+    end)
+
+    return sliderFrame, function() return value end
+end
+
+-- Clear previous placeholder text in AIMBOT tab
+for _, child in pairs(aimbotContent:GetChildren()) do
+    if child:IsA("TextLabel") then
+        child:Destroy()
+    end
+end
+
+-- Add actual cheat controls to AIMBOT tab
+local aimbotToggle, getAimbotState = createToggle(aimbotContent, "Aimbot", 10, false)
+local fovSlider, getFOV = createSlider(aimbotContent, "FOV", 50, 1, 180, 90)
+local smoothSlider, getSmooth = createSlider(aimbotContent, "Smoothness", 110, 1, 20, 5)
+
+-- Example: Print current values every 2 seconds (simulate cheat logic hook)
+task.spawn(function()
+    while aimbotContent.Parent do
+        task.wait(2)
+        if getAimbotState() then
+            print("Aimbot enabled! FOV:", string.format("%.1f", getFOV()), "Smoothness:", string.format("%.1f", getSmooth()))
+        else
+            print("Aimbot disabled")
+        end
+    end
+end)
+
