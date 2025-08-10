@@ -1,80 +1,6 @@
 -- Roblox Services
--- Mock Roblox globals for non-Roblox environments (remove if running in Roblox)
-if not game then
-    game = {
-        GetService = function(self, name)
-            return {}
-        end,
-        CoreGui = {}
-    }
-end
-if not Instance then
-    Instance = {
-        new = function(class)
-            local obj = {}
-            obj.ClassName = class
-            setmetatable(obj, {
-                __index = function(t, k)
-                    if k == "Parent" then return rawget(t, "_Parent") end
-                    return rawget(t, k)
-                end,
-                __newindex = function(t, k, v)
-                    if k == "Parent" then rawset(t, "_Parent", v) else rawset(t, k, v) end
-                end
-            })
-            obj.GetChildren = function() return {} end
-            obj.Destroy = function() end
-            obj.IsA = function(_, name) return name == class end
-            obj.MouseButton1Click = {Connect = function() end}
-            obj.InputBegan = {Connect = function() end}
-            obj.InputChanged = {Connect = function() end}
-            return obj
-        end
-    }
-end
-if not UDim2 then
-    UDim2 = {new = function(...) return {...} end}
-end
-if not Vector2 then
-    Vector2 = {new = function(x, y) return {X = x, Y = y} end}
-end
-if not Color3 then
-    Color3 = {fromRGB = function(r, g, b)
-        return {R = r/255, G = g/255, B = b/255, Lerp = function(self, other, t)
-            return Color3.fromRGB(
-                math.floor(self.R*255 + (other.R*255-self.R*255)*t),
-                math.floor(self.G*255 + (other.G*255-self.G*255)*t),
-                math.floor(self.B*255 + (other.B*255-self.B*255)*t)
-            )
-        end}
-    end}
-end
-if not Enum then
-    Enum = {
-        Font = {Code = "Code"},
-        TextXAlignment = {Center = "Center"},
-        UserInputType = {MouseButton1 = 1, MouseMovement = 2},
-        UserInputState = {End = 1}
-    }
-end
-if not TweenService then
-    TweenService = {
-        Create = function(obj, info, goals)
-            return {
-                Play = function() end,
-                Completed = {Connect = function(cb) cb() end}
-            }
-        end
-    }
-end
-if not TweenInfo then
-    TweenInfo = {new = function() return {} end}
-end
-if not task then
-    task = {wait = function(t) local s = os.clock() + (t or 0); while os.clock() < s do end; return true end}
-end
-
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- UI Colors (Gamesense style)
 local COLORS = {
@@ -97,7 +23,12 @@ local gradientColors = {
     Color3.fromRGB(238, 130, 238)
 }
 
-        -- (Removed stray parenthesis and code block)
+-- Create Main GUI
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "GameSenseMain"
+MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Ensure proper z-index handling
+MainGui.Parent = game:GetService("CoreGui")
+
 -- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -151,28 +82,37 @@ end)
 -- Dragging for main frame
 local dragStartPos
 local frameStartPos
+local isDragging = false
+
+local function updateDrag(input)
+    local delta = input.Position - dragStartPos
+    mainFrame.Position = UDim2.new(
+        frameStartPos.X.Scale, 
+        frameStartPos.X.Offset + delta.X,
+        frameStartPos.Y.Scale,
+        frameStartPos.Y.Offset + delta.Y
+    )
+end
 
 mainTitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragStartPos = input.Position
         frameStartPos = mainFrame.Position
-        input.Changed:Connect(function()
+        isDragging = true
+        
+        local connection
+        connection = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
-                dragStartPos = nil
+                isDragging = false
+                connection:Disconnect()
             end
         end)
     end
 end)
 
-mainTitleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement and dragStartPos then
-        local delta = input.Position - dragStartPos
-        mainFrame.Position = UDim2.new(
-            frameStartPos.X.Scale, 
-            frameStartPos.X.Offset + delta.X,
-            frameStartPos.Y.Scale,
-            frameStartPos.Y.Offset + delta.Y
-        )
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateDrag(input)
     end
 end)
 
@@ -195,7 +135,7 @@ coroutine.wrap(function()
         t = t + speed * 0.03
         if t > 1 then t = 0 end
 
-        local index1 = math.floor(t * colorCount) + 1
+        local index1 = math.floor(t * colorCount) % colorCount + 1
         local index2 = index1 % colorCount + 1
         local lerpT = (t * colorCount) % 1
 
@@ -205,7 +145,11 @@ end)()
 
 -- Sidebar for tabs
 local sidebar = Instance.new("Frame")
--- (Removed unused HideAllTabs function)
+sidebar.Name = "Sidebar"
+sidebar.Size = UDim2.new(0, 100, 0, 368)
+sidebar.Position = UDim2.new(0, 0, 0, 30)
+sidebar.BackgroundColor3 = COLORS.Card
+sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
 
 -- Separator line on sidebar edge
@@ -239,44 +183,39 @@ local function FadeFrame(frame, fadeIn, duration)
 
         -- BackgroundTransparency applies to Frame, TextLabel, TextButton, ImageLabel, etc.
         if v:IsA("Frame") or v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("ImageButton") then
-            goals.BackgroundTransparency = fadeIn and 0 or 1
+            goals.BackgroundTransparency = fadeIn and (v.BackgroundTransparency == 1 and 1 or 0) or 1
         end
 
         -- TextTransparency applies only to TextLabel and TextButton
         if v:IsA("TextLabel") or v:IsA("TextButton") then
-            goals.TextTransparency = fadeIn and 0 or 1
+            goals.TextTransparency = fadeIn and (v.TextTransparency == 1 and 1 or 0) or 1
         end
 
         -- ImageTransparency applies only to ImageLabel and ImageButton
         if v:IsA("ImageLabel") or v:IsA("ImageButton") then
-            goals.ImageTransparency = fadeIn and 0 or 1
+            goals.ImageTransparency = fadeIn and (v.ImageTransparency == 1 and 1 or 0) or 1
         end
 
         if next(goals) then
             table.insert(tweens, TweenService:Create(v, TweenInfo.new(duration), goals))
-
-    local completedCount = 0
-    local totalTweens = #tweens
+        end
+    end
 
     for _, tween in ipairs(tweens) do
         tween:Play()
-        tween.Completed:Connect(function()
-            completedCount = completedCount + 1
-        end)
-    end
-
-    while completedCount < totalTweens do
-        task.wait(0.01)
     end
 end
 
 -- Function to create tabs and their content containers
-createPlaceholderTab("Main", 0, "Main tab content here")
-createPlaceholderTab("Legit", 30, "Legit tab content here")
-createPlaceholderTab("Rage", 60, "Rage tab content here")
-createPlaceholderTab("Visuals", 90, "Visuals tab content here")
-createPlaceholderTab("Misc", 120, "Misc tab content here")
-createPlaceholderTab("Config", 150, "Config tab content here")
+local tabs = {}
+local currentTabName = nil
+
+local function HideAllTabs()
+    for _, tab in pairs(tabs) do
+        if tab.Content then
+            FadeFrame(tab.Content, false, 0.1)
+            tab.Content.Visible = false
+        end
     end
 end
 
@@ -308,16 +247,11 @@ local function CreateTab(name, yPos)
 
     tabButton.MouseButton1Click:Connect(function()
         if currentTabName == name then return end -- Already selected
-
-        if currentTabName and tabs[currentTabName] then
-            local currentContent = tabs[currentTabName].Content
-            FadeFrame(currentContent, false)
-            currentContent.Visible = false
-        end
-
-        local newContent = tabContent
-        newContent.Visible = true
-        FadeFrame(newContent, true)
+        
+        HideAllTabs()
+        
+        tabContent.Visible = true
+        FadeFrame(tabContent, true)
 
         currentTabName = name
     end)
@@ -328,6 +262,7 @@ end
 -- Helper function: Create placeholder tab content with simple text
 local function createPlaceholderTab(name, yPos, placeholderText)
     local tabButton, tabContent = CreateTab(name, yPos)
+    
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 0, 30)
     label.Position = UDim2.new(0, 0, 0, 20)
@@ -338,6 +273,7 @@ local function createPlaceholderTab(name, yPos, placeholderText)
     label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Center
     label.Parent = tabContent
+    
     return tabButton, tabContent
 end
 
@@ -350,6 +286,6 @@ local miscTabButton, miscContent = createPlaceholderTab("Misc", 120, "Misc tab c
 local configTabButton, configContent = createPlaceholderTab("Config", 150, "Config tab content here")
 
 -- Show Main tab by default
-tabs["Main"].Content.Visible = true
+mainContent.Visible = true
 currentTabName = "Main"
-
+FadeFrame(mainContent, true, 0)
