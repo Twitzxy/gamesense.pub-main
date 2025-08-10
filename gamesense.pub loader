@@ -120,7 +120,7 @@ coroutine.wrap(function()
     local t = 0
     local speed = 1 / 5 -- 5 seconds per full cycle
 
-    while task.wait(0.03) and mainTopBar do
+    while task.wait(0.03) and mainTopBar.Parent do
         t = t + speed * 0.03
         if t > 1 then t = 0 end
 
@@ -161,34 +161,48 @@ contentFrame.Parent = mainFrame
 -- Utility function: Fade frame in/out (Tween transparency)
 local function FadeFrame(frame, fadeIn, duration)
     duration = duration or 0.25
-    local goal = {}
-    if fadeIn then
-        goal.BackgroundTransparency = 0
-        for _, v in pairs(frame:GetChildren()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("Frame") then
-                goal[v] = {BackgroundTransparency = 0, TextTransparency = 0, ImageTransparency = 0}
-            end
-        end
-    else
-        goal.BackgroundTransparency = 1
-        for _, v in pairs(frame:GetChildren()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("Frame") then
-                goal[v] = {BackgroundTransparency = 1, TextTransparency = 1, ImageTransparency = 1}
-            end
+    local goals = {}
+
+    goals.BackgroundTransparency = fadeIn and 0 or 1
+
+    for _, v in pairs(frame:GetChildren()) do
+        if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("Frame") then
+            goals[v] = {
+                BackgroundTransparency = fadeIn and 0 or 1,
+                TextTransparency = fadeIn and 0 or 1,
+                ImageTransparency = fadeIn and 0 or 1
+            }
         end
     end
 
-    local tween = TweenService:Create(frame, TweenInfo.new(duration), {BackgroundTransparency = fadeIn and 0 or 1})
-    tween:Play()
-    for child, props in pairs(goal) do
-        TweenService:Create(child, TweenInfo.new(duration), props):Play()
+    local tweens = {}
+    table.insert(tweens, TweenService:Create(frame, TweenInfo.new(duration), {BackgroundTransparency = goals.BackgroundTransparency}))
+
+    for child, props in pairs(goals) do
+        if child ~= "BackgroundTransparency" then
+            table.insert(tweens, TweenService:Create(child, TweenInfo.new(duration), props))
+        end
     end
-    tween.Completed:Wait()
+
+    for _, tween in ipairs(tweens) do
+        tween:Play()
+    end
+
+    -- Wait for all tweens to finish
+    for _, tween in ipairs(tweens) do
+        tween.Completed:Wait()
+    end
 end
 
 -- Function to create tabs and their content containers
 local tabs = {}
 local currentTabName = nil
+
+local function HideAllTabs()
+    for _, tab in pairs(tabs) do
+        tab.Content.Visible = false
+    end
+end
 
 local function CreateTab(name, yPos)
     local tabButton = Instance.new("TextButton")
@@ -239,7 +253,23 @@ local function CreateTab(name, yPos)
     return tabButton, tabContent
 end
 
--- Create all tabs
+-- Helper function: Create placeholder tab content with simple text
+local function createPlaceholderTab(name, yPos, placeholderText)
+    local tabButton, tabContent = CreateTab(name, yPos)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 30)
+    label.Position = UDim2.new(0, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = placeholderText
+    label.TextColor3 = COLORS.Text
+    label.Font = Enum.Font.Code
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.Parent = tabContent
+    return tabButton, tabContent
+end
+
+-- Create tabs
 local mainTabButton, mainContent = CreateTab("MAIN", 0)
 local aimbotTabButton, aimbotContent = CreateTab("AIMBOT", 30)
 local visualsTabButton, visualsContent = CreateTab("VISUALS", 60)
@@ -254,28 +284,11 @@ csgoImage.BackgroundTransparency = 1
 csgoImage.Image = "rbxassetid://112154610367019"
 csgoImage.Parent = mainContent
 
--- Placeholder labels for other tabs
-local function createPlaceholderLabel(parent, text)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 30)
-    label.Position = UDim2.new(0, 0, 0, 20)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = COLORS.Text
-    label.Font = Enum.Font.Code
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.Parent = parent
-    return label
-end
+-- Placeholder for VISUALS and MISC tabs
+createPlaceholderTab("VISUALS", 60, "Visual enhancements coming soon...")
+createPlaceholderTab("MISC", 90, "Miscellaneous settings coming soon...")
 
-createPlaceholderLabel(aimbotContent, "Aimbot features coming soon...")
-createPlaceholderLabel(visualsContent, "Visual enhancements coming soon...")
-createPlaceholderLabel(miscContent, "Miscellaneous settings coming soon...")
-
--- Automatically select MAIN tab on open
-mainTabButton:MouseButton1Click()
-
+-- Utility: Toggle Control
 local function createToggle(parent, text, posY, default)
     local toggleFrame = Instance.new("Frame")
     toggleFrame.Size = UDim2.new(1, -20, 0, 30)
@@ -318,6 +331,7 @@ local function createToggle(parent, text, posY, default)
     return toggleFrame, function() return state end
 end
 
+-- Utility: Slider Control
 local function createSlider(parent, text, posY, min, max, default)
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, -20, 0, 50)
@@ -337,76 +351,53 @@ local function createSlider(parent, text, posY, min, max, default)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = sliderFrame
 
-    local sliderBackground = Instance.new("Frame")
-    sliderBackground.Size = UDim2.new(1, -10, 0, 10)
-    sliderBackground.Position = UDim2.new(0, 5, 0, 30)
-    sliderBackground.BackgroundColor3 = COLORS.Background
-    sliderBackground.BorderColor3 = COLORS.Border
-    sliderBackground.BorderSizePixel = 1
-    sliderBackground.Parent = sliderFrame
+    local sliderBar = Instance.new("Frame")
+    sliderBar.Size = UDim2.new(1, -20, 0, 10)
+    sliderBar.Position = UDim2.new(0, 10, 0, 35)
+    sliderBar.BackgroundColor3 = COLORS.Background
+    sliderBar.BorderColor3 = COLORS.Border
+    sliderBar.BorderSizePixel = 1
+    sliderBar.Parent = sliderFrame
 
     local sliderFill = Instance.new("Frame")
     sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    sliderFill.Position = UDim2.new(0, 0, 0, 0)
     sliderFill.BackgroundColor3 = COLORS.Accent
-    sliderFill.BorderSizePixel = 0
-    sliderFill.Parent = sliderBackground
+    sliderFill.Parent = sliderBar
+
+    local sliderValue = default
 
     local dragging = false
-    local value = default
-
-    local function updateSlider(inputPos)
-        local relativeX = math.clamp(inputPos.X - sliderBackground.AbsolutePosition.X, 0, sliderBackground.AbsoluteSize.X)
-        local percent = relativeX / sliderBackground.AbsoluteSize.X
-        value = min + percent * (max - min)
-        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-        label.Text = text .. ": " .. string.format("%.1f", value)
-        print(text .. " set to: " .. string.format("%.1f", value))
-    end
-
-    sliderBackground.InputBegan:Connect(function(input)
+    sliderBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            updateSlider(input.Position)
         end
     end)
-
-    sliderBackground.InputEnded:Connect(function(input)
+    sliderBar.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
-
-    sliderBackground.InputChanged:Connect(function(input)
+    sliderBar.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateSlider(input.Position)
+            local relativePos = math.clamp(input.Position.X - sliderBar.AbsolutePosition.X, 0, sliderBar.AbsoluteSize.X)
+            local percent = relativePos / sliderBar.AbsoluteSize.X
+            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            sliderValue = math.floor(min + percent * (max - min) + 0.5)
+            label.Text = text .. ": " .. tostring(sliderValue)
+            --print(text .. " set to " .. sliderValue)
         end
     end)
 
-    return sliderFrame, function() return value end
+    return sliderFrame, function() return sliderValue end
 end
 
--- Clear previous placeholder text in AIMBOT tab
-for _, child in pairs(aimbotContent:GetChildren()) do
-    if child:IsA("TextLabel") then
-        child:Destroy()
-    end
-end
+-- AIMBOT tab content: Add toggles and slider example
+local aimbotEnabledToggle, isAimbotEnabled = createToggle(aimbotContent, "Enable Aimbot", 20, false)
+local aimbotFOVSlider, getAimbotFOV = createSlider(aimbotContent, "Aimbot FOV", 60, 1, 180, 90)
 
--- Add actual cheat controls to AIMBOT tab
-local aimbotToggle, getAimbotState = createToggle(aimbotContent, "Aimbot", 10, false)
-local fovSlider, getFOV = createSlider(aimbotContent, "FOV", 50, 1, 180, 90)
-local smoothSlider, getSmooth = createSlider(aimbotContent, "Smoothness", 110, 1, 20, 5)
+-- VISUALS tab content example: ESP toggle (placeholder functionality)
+local espToggle, isESPEnabled = createToggle(visualsContent, "Enable ESP", 20, false)
 
--- Example: Print current values every 2 seconds (simulate cheat logic hook)
-task.spawn(function()
-    while aimbotContent.Parent do
-        task.wait(2)
-        if getAimbotState() then
-            print("Aimbot enabled! FOV:", string.format("%.1f", getFOV()), "Smoothness:", string.format("%.1f", getSmooth()))
-        else
-            print("Aimbot disabled")
-        end
-    end
-end)
+-- Start with MAIN tab selected by default
+mainTabButton.MouseButton1Click:Invoke() -- Manually trigger click to show MAIN tab content
 
