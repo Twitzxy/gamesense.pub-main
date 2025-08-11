@@ -43,10 +43,77 @@ local spectateStrafeEnabled = false
 local AutoAmmoEnabled = false
 local strafeWasEnabledBeforeAmmoBuy = false
 
+-- Hitsounds
+getgenv().hitsounds = {
+    ["Bubble"] = "rbxassetid://6534947588",
+    ["Lazer"] = "rbxassetid://130791043",
+    ["Pick"] = "rbxassetid://1347140027",
+    ["Pop"] = "rbxassetid://198598793",
+    ["Rust"] = "rbxassetid://1255040462",
+    ["Sans"] = "rbxassetid://3188795283",
+    ["Fart"] = "rbxassetid://130833677",
+    ["Big"] = "rbxassetid://5332005053",
+    ["Vine"] = "rbxassetid://5332680810",
+    ["UwU"] = "rbxassetid://8679659744",
+    ["Bruh"] = "rbxassetid://4578740568",
+    ["Skeet"] = "rbxassetid://5633695679",
+    ["Neverlose"] = "rbxassetid://6534948092",
+    ["Fatality"] = "rbxassetid://6534947869",
+    ["Bonk"] = "rbxassetid://5766898159",
+    ["Minecraft"] = "rbxassetid://5869422451",
+    ["Gamesense"] = "rbxassetid://4817809188",
+    ["RIFK7"] = "rbxassetid://9102080552",
+    ["Bamboo"] = "rbxassetid://3769434519",
+    ["Crowbar"] = "rbxassetid://546410481",
+    ["Weeb"] = "rbxassetid://6442965016",
+    ["Beep"] = "rbxassetid://8177256015",
+    ["Bambi"] = "rbxassetid://8437203821",
+    ["Stone"] = "rbxassetid://3581383408",
+    ["Old Fatality"] = "rbxassetid://6607142036",
+    ["Click"] = "rbxassetid://8053704437",
+    ["Ding"] = "rbxassetid://7149516994",
+    ["Snow"] = "rbxassetid://6455527632",
+    ["Laser"] = "rbxassetid://7837461331",
+    ["Mario"] = "rbxassetid://2815207981",
+    ["Steve"] = "rbxassetid://4965083997",
+    ["Call of Duty"] = "rbxassetid://5952120301",
+    ["Bat"] = "rbxassetid://3333907347",
+    ["TF2 Critical"] = "rbxassetid://296102734",
+    ["Saber"] = "rbxassetid://8415678813",
+    ["Baimware"] = "rbxassetid://3124331820",
+    ["Osu"] = "rbxassetid://7149255551",
+    ["TF2"] = "rbxassetid://2868331684",
+    ["Slime"] = "rbxassetid://6916371803",
+    ["Among Us"] = "rbxassetid://5700183626",
+    ["One"] = "rbxassetid://7380502345"
+}
+getgenv().selectedHitsound = "Bubble"
+getgenv().hitsoundEnabled = false
+getgenv().hitsoundVolume = 1
+
+function playHitsound()
+    if getgenv().hitsoundEnabled then
+        local sound = Instance.new("Sound")
+        sound.SoundId = getgenv().hitsounds[getgenv().selectedHitsound]
+        sound.Volume = getgenv().hitsoundVolume
+        sound.Parent = workspace
+        sound:Play()
+        sound.Ended:Connect(function()
+            sound:Destroy()
+        end)
+    end
+end
+
+-- Tracers
 local tracer = Drawing.new("Line")
 tracer.Visible = false
 tracer.Thickness = 1
 tracer.Color = Color3.fromRGB(255, 255, 255)
+
+local killAuraTracer = Drawing.new("Line")
+killAuraTracer.Visible = false
+killAuraTracer.Thickness = 1
+killAuraTracer.Color = Color3.fromRGB(255, 0, 0)
 
 function predictPosition(targetRoot, predictionMultiplier)
     if not targetRoot then return targetRoot.Position end
@@ -592,6 +659,7 @@ KillAura:AddToggle('MainToggle', {
         if not state then
             getgenv().active = false
             getgenv().tracer.Transparency = 1
+            killAuraTracer.Visible = false
         end
     end
 }):AddKeyPicker('Keybind', {
@@ -626,6 +694,7 @@ KillAura:AddToggle('Visualizer', {
     Default = Color3.new(1, 0, 0),
     Callback = function(value)
         getgenv().tracer.Color = value
+        killAuraTracer.Color = value
     end
 })
 
@@ -669,6 +738,148 @@ KillAura:AddInput('wlb', {
         return suggestions
     end
 })
+
+-- Hitsounds
+GunMods:AddToggle('hstoggle', {
+    Text = 'Hitsounds',
+    Default = false,
+    Callback = function(state)
+        getgenv().hitsoundEnabled = state
+    end
+})
+
+GunMods:AddDropdown('hs', {
+    Text = 'Select Hitsound',
+    Values = {"Bubble", "Lazer", "Pick", "Pop", "Rust", "Sans", "Fart", "Big", "Vine", "UwU", "Bruh", "Skeet", "Neverlose", "Fatality", "Bonk", "Minecraft", "Gamesense", "RIFK7", "Bamboo", "Crowbar", "Weeb", "Beep", "Bambi", "Stone", "Old Fatality", "Click", "Ding", "Snow", "Laser", "Mario", "Steve", "Call of Duty", "Bat", "TF2 Critical", "Saber", "Baimware", "Osu", "TF2", "Slime", "Among Us", "One"},
+    Default = "Bubble",
+    Callback = function(value)
+        getgenv().selectedHitsound = value
+    end
+})
+
+GunMods:AddSlider('hsvolume', {
+    Text = 'Volume',
+    Default = 1,
+    Min = 1,
+    Max = 5,
+    Rounding = 2,
+    Callback = function(value)
+        getgenv().hitsoundVolume = value
+    end
+})
+
+-- Anti Aim (Desync)
+local desync_setback = Instance.new("Part")
+desync_setback.Name = "Desync Setback"
+desync_setback.Parent = workspace
+desync_setback.Size = Vector3.new(2, 2, 1)
+desync_setback.CanCollide = false
+desync_setback.Anchored = true
+desync_setback.Transparency = 1
+
+local desync = {
+    enabled = false,
+    mode = "Void",
+    teleportPosition = Vector3.new(0, 0, 0),
+    old_position = nil,
+    voidSpamActive = false,
+    toggleEnabled = false
+}
+
+function resetCamera()
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            workspace.CurrentCamera.CameraSubject = humanoid
+        end
+    end
+end
+
+function toggleDesync(state)
+    desync.enabled = state
+    if desync.enabled then
+        workspace.CurrentCamera.CameraSubject = desync_setback
+        Library:Notify("Desync Enabled '" .. desync.mode .. "' Mad.lol $", 2)
+    else
+        resetCamera()
+        Library:Notify("Desync Disabled '" .. desync.mode .. "' Mad.lol  $", 2)
+    end
+end
+
+function setDesyncMode(mode)
+    desync.mode = mode
+end
+
+local DesyncBox = Tabs.Main:AddRightGroupbox("Anti Aim")
+
+DesyncBox:AddToggle('DesyncToggle', {
+    Text = 'Anti Aim',
+    Default = false,
+    Callback = function(state)
+        desync.toggleEnabled = state
+        if not state then
+            toggleDesync(false)
+        end
+    end,
+}):AddKeyPicker('DesyncKeybind', {
+    Default = 'V',
+    Text = 'Desync',
+    Mode = 'Toggle',
+    Callback = function(state)
+        if not desync.toggleEnabled or UserInputService:GetFocusedTextBox() then return end
+        toggleDesync(not desync.enabled)
+    end,
+})
+
+DesyncBox:AddDropdown('DesyncMethodDropdown', {
+    Values = {"Destroy Cheaters", "Underground", "Void Spam", "Void"},
+    Default = "Void",
+    Multi = false,
+    Text = 'Method',
+    Callback = function(selected)
+        setDesyncMode(selected)
+    end
+})
+
+RunService.Heartbeat:Connect(function()
+    if desync.enabled and LocalPlayer.Character then
+        local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            desync.old_position = rootPart.CFrame
+
+            if desync.mode == "Destroy Cheaters" then
+                desync.teleportPosition = Vector3.new(11223344556677889900, 1, 1)
+
+            elseif desync.mode == "Underground" then
+                desync.teleportPosition = rootPart.Position - Vector3.new(0, 12, 0)
+
+            elseif desync.mode == "Void Spam" then
+                desync.teleportPosition = math.random(1, 2) == 1 and desync.old_position.Position or Vector3.new(
+                    math.random(10000, 50000),
+                    math.random(10000, 50000),
+                    math.random(10000, 50000)
+                )
+
+            elseif desync.mode == "Void" then
+                desync.teleportPosition = Vector3.new(
+                    rootPart.Position.X + math.random(-444444, 444444),
+                    rootPart.Position.Y + math.random(-444444, 444444),
+                    rootPart.Position.Z + math.random(-44444, 44444)
+                )
+            end
+
+            if desync.mode ~= "Rotation" then
+                rootPart.CFrame = CFrame.new(desync.teleportPosition)
+                workspace.CurrentCamera.CameraSubject = desync_setback
+
+                RunService.RenderStepped:Wait()
+
+                desync_setback.CFrame = desync.old_position * CFrame.new(0, rootPart.Size.Y / 2 + 0.5, 0)
+                rootPart.CFrame = desync.old_position
+            end
+        end
+    end
+end)
 
 -- UI Settings Tab
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
@@ -727,6 +938,17 @@ RunService.RenderStepped:Connect(function()
             end
         end
 
+        local humanoid = lockedTarget.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            if not getgenv().lastHealth[lockedTarget.Name] then
+                getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
+            end
+            if humanoid.Health < getgenv().lastHealth[lockedTarget.Name] then
+                playHitsound()
+            end
+            getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
+        end
+
         if TracerEnabled and targetPart then
             tracer.Visible = true
             local camera = workspace.CurrentCamera
@@ -736,16 +958,17 @@ RunService.RenderStepped:Connect(function()
             if targetToMouseTracer then
                 endScreenPos = UserInputService:GetMouseLocation()
             else
-                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local rootPart = LocalPlayer.Character and LocalPlayer
+                                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if rootPart then
-                    local rootScreenPos, rootOnScreen = camera:WorldToViewportPoint(rootPart.Position)
-                    if rootOnScreen then
-                        endScreenPos = Vector2.new(rootScreenPos.X, rootScreenPos.Y)
-                    end
+                    local rootScreenPos = camera:WorldToViewportPoint(rootPart.Position)
+                    endScreenPos = Vector2.new(rootScreenPos.X, rootScreenPos.Y)
+                else
+                    endScreenPos = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
                 end
             end
 
-            if onScreen and endScreenPos then
+            if onScreen then
                 tracer.From = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
                 tracer.To = endScreenPos
             else
@@ -755,130 +978,183 @@ RunService.RenderStepped:Connect(function()
             tracer.Visible = false
         end
 
-        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        local handle = tool and tool:FindFirstChild("Handle")
-        if tool and handle and targetPart and not isKO and not isGrabbed then
-            if hiddenBulletsEnabled then
-                ReplicatedStorage.MainEvent:FireServer(
-                    "ShootGun",
-                    handle,
-                    handle.CFrame.Position - Vector3.new(0, 10, 0),
-                    targetPart.Position - Vector3.new(0, 10, 0),
-                    targetPart,
-                    Vector3.new(0, 0, -1))
-            else
-                ReplicatedStorage.MainEvent:FireServer(
-                    "ShootGun",
-                    handle,
-                    handle.CFrame.Position,
-                    targetPart.Position,
-                    targetPart,
-                    Vector3.new(0, 0, -1))
+        if StickyAimEnabled then
+            local camera = workspace.CurrentCamera
+            local targetPos = targetPart.Position
+            if predictMovementEnabled then
+                targetPos = predictPosition(lockedTarget.Character:FindFirstChild("HumanoidRootPart"), PredicTvalue)
+            end
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
+        end
+
+        if stompTargetEnabled and targetPart then
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPart.Position + Vector3.new(0, 5, 0))
             end
         end
     else
         tracer.Visible = false
     end
-end)
 
--- Kill Aura loop
-task.spawn(function()
-    while true do
-        if getgenv().active and getgenv().enabled and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool") and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle") then
-            if workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name) and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name):FindFirstChild("BodyEffects") and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name).BodyEffects:FindFirstChild("K.O") and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name).BodyEffects["K.O"].Value then
-                task.wait()
-            else
-                local closest = math.huge
-                target = nil
+    -- Kill Aura Logic
+    if getgenv().enabled and getgenv().active and LocalPlayer.Character then
+        local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            local closestPlayer, closestDistance = nil, getgenv().range
 
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    if player ~= game.Players.LocalPlayer and not getgenv().whitelist[player.Name] and player.Character and player.Character:FindFirstChild("Head") and not player.Character:FindFirstChild("GRABBING_CONSTRAINT") then
-                        if workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild(player.Name) and workspace.Players:FindFirstChild(player.Name):FindFirstChild("BodyEffects") and workspace.Players:FindFirstChild(player.Name).BodyEffects:FindFirstChild("K.O") and not workspace.Players:FindFirstChild(player.Name).BodyEffects["K.O"].Value then
-                            local dist = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - player.Character.Head.Position).Magnitude
-                            if dist < closest and dist <= getgenv().range then
-                                closest = dist
-                                target = player
-                            end
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and not getgenv().whitelist[player.Name] then
+                    local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                    if targetRoot then
+                        local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                        if distance < closestDistance then
+                            closestPlayer = player
+                            closestDistance = distance
                         end
                     end
                 end
+            end
 
-                if target and target.Character and target.Character:FindFirstChild("Head") then
+            if closestPlayer and closestPlayer.Character then
+                local targetRoot = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
                     if getgenv().visualizeEnabled then
-                        getgenv().tracer.Transparency = 0
-                        getgenv().tracer.Size = Vector3.new(0.2, 0.2, (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - target.Character.Head.Position).Magnitude)
-                        getgenv().tracer.CFrame = CFrame.lookAt(game.Players.LocalPlayer.Character.HumanoidRootPart.Position, target.Character.Head.Position) * CFrame.new(0, 0, -getgenv().tracer.Size.Z / 2)
+                        getgenv().tracer.Transparency = 0.5
+                        getgenv().tracer.CFrame = CFrame.new(targetRoot.Position)
+                        killAuraTracer.Visible = true
+                        killAuraTracer.From = Vector2.new(rootPart.Position.X, rootPart.Position.Y)
+                        killAuraTracer.To = Vector2.new(targetRoot.Position.X, targetRoot.Position.Y)
                     else
                         getgenv().tracer.Transparency = 1
+                        killAuraTracer.Visible = false
                     end
 
-                    if getgenv().silentEnabled then
-                        game.ReplicatedStorage.MainEvent:FireServer(
-                            "ShootGun",
-                            game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle"),
-                            game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle").CFrame.Position - Vector3.new(0, 12, 0),
-                            target.Character.Head.Position - Vector3.new(0, 12, 0),
-                            target.Character.Head,
-                            Vector3.new(0, 0, -1)
-                        )
-                    else
-                        game.ReplicatedStorage.MainEvent:FireServer("ShootGun", game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle"), game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle").CFrame.Position, target.Character.Head.Position, target.Character.Head, Vector3.new(0, 0, -1))
+                    if not getgenv().silentEnabled then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 3, 0))
                     end
-                else
-                    getgenv().tracer.Transparency = 1
-                end
-            end
-        else
-            getgenv().tracer.Transparency = 1
-        end
-        task.wait()
-    end
-end)
 
--- Stomp loop
-task.spawn(function()
-    while true do
-        if stompTargetEnabled and lockedTarget and lockedTarget ~= LocalPlayer then
-            local character = lockedTarget.Character
-            if character then
-                local bodyEffects = character:FindFirstChild("BodyEffects")
-                local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
-                local isSDeath = bodyEffects and bodyEffects:FindFirstChild("SDeath") and bodyEffects["SDeath"].Value
-
-                if isKO and not isSDeath then
-                    local upperTorso = character:FindFirstChild("UpperTorso")
-                    if upperTorso then
-                        local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-                        if not lastPosition then
-                            lastPosition = humanoidRootPart.Position
-                        end
-                        humanoidRootPart.CFrame = CFrame.new(upperTorso.Position + Vector3.new(0, 3, 0))
-                        RunService.RenderStepped:Wait()
+                    -- Simulate punch
+                    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
                     end
-                elseif isSDeath and lastPosition then
-                    if killSayEnabled then
-                        local message = killSayMessages[math.random(1, #killSayMessages)]
-                        game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
-                    end
-                    local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-                    while (humanoidRootPart.Position - lastPosition).Magnitude > 5 do
-                        humanoidRootPart.CFrame = CFrame.new(lastPosition)
-                        task.wait()
-                    end
-                    lastPosition = nil
                 end
             else
-                if lastPosition then
-                    local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-                    while (humanoidRootPart.Position - lastPosition).Magnitude > 5 do
-                        humanoidRootPart.CFrame = CFrame.new(lastPosition)
-                        task.wait()
+                getgenv().tracer.Transparency = 1
+                killAuraTracer.Visible = false
+            end
+        end
+    end
+
+    -- Auto Ammo Logic
+    if AutoAmmoEnabled and LocalPlayer.Character then
+        local backpack = LocalPlayer:FindFirstChild("Backpack")
+        local character = LocalPlayer.Character
+        local hasLowAmmo = false
+
+        -- Check for low ammo
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:FindFirstChild("Ammo") and tool.Ammo.Value < 5 then
+                hasLowAmmo = true
+                break
+            end
+        end
+
+        if hasLowAmmo then
+            -- Save strafe state if needed
+            if strafeEnabled then
+                strafeWasEnabledBeforeAmmoBuy = true
+                strafeEnabled = false
+            end
+
+            -- Teleport to ammo store (replace with actual coordinates)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(100, 5, 100) -- Example coordinates
+
+            -- Simulate buying ammo
+            wait(1)
+            fireclickdetector(game:GetService("Workspace").AmmoStore.ClickDetector)
+
+            -- Restore strafe state
+            if strafeWasEnabledBeforeAmmoBuy then
+                strafeEnabled = true
+                strafeWasEnabledBeforeAmmoBuy = false
+            end
+        end
+    end
+
+    -- Kill Say Logic
+    if killSayEnabled then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local humanoid = player.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    if not getgenv().lastHealth[player.Name] then
+                        getgenv().lastHealth[player.Name] = humanoid.Health
                     end
-                    lastPosition = nil
+                    
+                    if humanoid.Health <= 0 and getgenv().lastHealth[player.Name] > 0 then
+                        local message = killSayMessages[math.random(1, #killSayMessages)]
+                        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+                    end
+                    
+                    getgenv().lastHealth[player.Name] = humanoid.Health
                 end
             end
-            ReplicatedStorage.MainEvent:FireServer("Stomp")
         end
-        task.wait(0)
     end
 end)
+
+-- Hidden Bullets Logic
+local originalBulletTransparency
+if hiddenBulletsEnabled then
+    for _, v in next, getgc(true) do
+        if type(v) == "table" and rawget(v, "shoot") then
+            originalBulletTransparency = v.bullet
+            v.bullet = function(...)
+                local args = {...}
+                args[2] = nil -- Remove bullet visual
+                return originalBulletTransparency(unpack(args))
+            end
+        end
+    end
+elseif originalBulletTransparency then
+    for _, v in next, getgc(true) do
+        if type(v) == "table" and rawget(v, "shoot") then
+            v.bullet = originalBulletTransparency
+        end
+    end
+end
+
+-- Cleanup on script unload
+Library.OnUnload = function()
+    if tracer then tracer:Remove() end
+    if killAuraTracer then killAuraTracer:Remove() end
+    if desync_setback then desync_setback:Destroy() end
+    if getgenv().tracer then getgenv().tracer:Destroy() end
+    
+    -- Reset hitbox expander
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character then
+            resetCharacter(Player.Character)
+        end
+    end
+    
+    -- Reset hidden bullets
+    if originalBulletTransparency then
+        for _, v in next, getgc(true) do
+            if type(v) == "table" and rawget(v, "shoot") then
+                v.bullet = originalBulletTransparency
+            end
+        end
+    end
+    
+    -- Reset camera
+    if LocalPlayer.Character then
+        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+    end
+end
+
+-- Notify loaded
+Library:Notify("Loaded Mad.lol | Beta", 5)
