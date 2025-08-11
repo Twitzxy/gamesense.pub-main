@@ -1,298 +1,60 @@
--- Roblox Services
-local TweenService = game:GetService("TweenService")
+-- // Load Linoria UI Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
--- UI Colors (Gamesense style)
-local COLORS = {
-    Background = Color3.fromRGB(0, 0, 0),      -- Black background always visible
-    Text = Color3.fromRGB(0, 255, 0),
-    Accent = Color3.fromRGB(0, 255, 0),
-    Card = Color3.fromRGB(20, 20, 20),
-    WhiteFrame = Color3.fromRGB(255, 255, 255), -- White frame flashes
-    Border = Color3.fromRGB(50, 50, 50)
-}
+-- // Create Window
+local Window = Library:CreateWindow({
+    Title = 'Gamesense-Inspired UI',
+    Center = true,
+    AutoShow = true,
+    TabPadding = 8
+})
 
--- Gradient Colors for Top Bar Animation (Rainbow)
-local gradientColors = {
-    Color3.fromRGB(255, 0, 0),
-    Color3.fromRGB(255, 165, 0),
-    Color3.fromRGB(255, 255, 0),
-    Color3.fromRGB(0, 255, 0),
-    Color3.fromRGB(0, 0, 255),
-    Color3.fromRGB(75, 0, 130),
-    Color3.fromRGB(238, 130, 238)
-}
+-- // Create Tabs
+local MainTab = Window:AddTab('Main')
+local AimbotTab = Window:AddTab('Aimbot')
+local VisualsTab = Window:AddTab('Visuals')
+local MiscTab = Window:AddTab('Misc')
 
--- Create Main GUI
-local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "GameSenseMain"
-MainGui.Parent = game.CoreGui
-
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 500, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
-mainFrame.BackgroundColor3 = COLORS.Background  -- Black background
-mainFrame.BorderColor3 = COLORS.Border
-mainFrame.BorderSizePixel = 1
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = MainGui
-
--- Title Bar
-local mainTitleBar = Instance.new("Frame")
-mainTitleBar.Name = "TitleBar"
-mainTitleBar.Size = UDim2.new(1, 0, 0, 30)
-mainTitleBar.BackgroundColor3 = COLORS.Card
-mainTitleBar.BorderSizePixel = 0
-mainTitleBar.ZIndex = 2
-mainTitleBar.Parent = mainFrame
-
--- Title Text
-local mainTitle = Instance.new("TextLabel")
-mainTitle.Text = "GAMESENSE.PUB // CHEAT MENU"
-mainTitle.Font = Enum.Font.Code
-mainTitle.TextSize = 14
-mainTitle.TextColor3 = COLORS.Accent
-mainTitle.BackgroundTransparency = 1
-mainTitle.Size = UDim2.new(1, -40, 1, 0)
-mainTitle.Position = UDim2.new(0.5, 0, 0, 0)
-mainTitle.AnchorPoint = Vector2.new(0.5, 0)
-mainTitle.TextXAlignment = Enum.TextXAlignment.Center
-mainTitle.ZIndex = 3
-mainTitle.Parent = mainTitleBar
-
--- Close Button
-local mainCloseButton = Instance.new("TextButton")
-mainCloseButton.Text = "X"
-mainCloseButton.Size = UDim2.new(0, 30, 0, 30)
-mainCloseButton.Position = UDim2.new(1, -30, 0, 0)
-mainCloseButton.BackgroundColor3 = COLORS.Card
-mainCloseButton.TextColor3 = COLORS.Text
-mainCloseButton.Font = Enum.Font.Code
-mainCloseButton.TextSize = 14
-mainCloseButton.ZIndex = 3
-mainCloseButton.Parent = mainTitleBar
-
-mainCloseButton.MouseButton1Click:Connect(function()
-    MainGui:Destroy()
-end)
-
--- Dragging for main frame
-local dragStartPos
-local frameStartPos
-
-mainTitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragStartPos = input.Position
-        frameStartPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragStartPos = nil
-            end
-        end)
-    end
-end)
-
-mainTitleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement and dragStartPos then
-        local delta = input.Position - dragStartPos
-        mainFrame.Position = UDim2.new(
-            frameStartPos.X.Scale, 
-            frameStartPos.X.Offset + delta.X,
-            frameStartPos.Y.Scale,
-            frameStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- RGB Top Bar with smooth gradient transition
-local mainTopBar = Instance.new("Frame")
-mainTopBar.Size = UDim2.new(1, 0, 0, 2)
-mainTopBar.Position = UDim2.new(0, 0, 1, -2)
-mainTopBar.BackgroundColor3 = gradientColors[1]
-mainTopBar.BorderSizePixel = 0
-mainTopBar.ZIndex = 3
-mainTopBar.Parent = mainTitleBar
-
--- Coroutine for smooth continuous gradient cycling
-coroutine.wrap(function()
-    local colorCount = #gradientColors
-    local t = 0
-    local speed = 1 / 5 -- 5 seconds per full cycle
-
-    while task.wait(0.03) and mainTopBar.Parent do
-        t = t + speed * 0.03
-        if t > 1 then t = 0 end
-
-        local index1 = math.floor(t * colorCount) + 1
-        local index2 = index1 % colorCount + 1
-        local lerpT = (t * colorCount) % 1
-
-        mainTopBar.BackgroundColor3 = gradientColors[index1]:Lerp(gradientColors[index2], lerpT)
-    end
-end)()
-
--- Sidebar for tabs
-local sidebar = Instance.new("Frame")
-sidebar.Name = "Sidebar"
-sidebar.Size = UDim2.new(0, 100, 0, 368)
-sidebar.Position = UDim2.new(0, 0, 0, 30)
-sidebar.BackgroundColor3 = COLORS.Card
-sidebar.BorderSizePixel = 0
-sidebar.Parent = mainFrame
-
--- Separator line on sidebar edge
-local separator = Instance.new("Frame")
-separator.Size = UDim2.new(0, 1, 1, 0)
-separator.Position = UDim2.new(0, 100, 0, 0)
-separator.BackgroundColor3 = COLORS.Border
-separator.BorderSizePixel = 0
-separator.Parent = sidebar
-
--- Content black background frame — always visible behind tab contents
-local contentBackground = Instance.new("Frame")
-contentBackground.Name = "ContentBackground"
-contentBackground.Size = UDim2.new(0, 399, 0, 368)
-contentBackground.Position = UDim2.new(0, 101, 0, 30)
-contentBackground.BackgroundColor3 = COLORS.Background -- BLACK background
-contentBackground.BorderSizePixel = 0
-contentBackground.Parent = mainFrame
-contentBackground.ZIndex = 1
-
--- White frame inside contentBackground that will flash/fade on tab change
-local whiteFrame = Instance.new("Frame")
-whiteFrame.Name = "WhiteFrame"
-whiteFrame.Size = UDim2.new(1, 0, 1, 0)
-whiteFrame.Position = UDim2.new(0, 0, 0, 0)
-whiteFrame.BackgroundColor3 = COLORS.WhiteFrame -- WHITE
-whiteFrame.BorderSizePixel = 0
-whiteFrame.Parent = contentBackground
-whiteFrame.ZIndex = 2
-
--- Utility: Fade frame in/out (Tween transparency) — yields until done
-local function FadeFrame(frame, fadeIn, duration)
-    duration = duration or 0.25
-    local tweens = {}
-
-    table.insert(tweens, TweenService:Create(frame, TweenInfo.new(duration), {
-        BackgroundTransparency = fadeIn and 0 or 1
-    }))
-
-    for _, v in pairs(frame:GetChildren()) do
-        local goals = {}
-        if v:IsA("Frame") or v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") or v:IsA("ImageButton") then
-            goals.BackgroundTransparency = fadeIn and 0 or 1
-        end
-        if v:IsA("TextLabel") or v:IsA("TextButton") then
-            goals.TextTransparency = fadeIn and 0 or 1
-        end
-        if v:IsA("ImageLabel") or v:IsA("ImageButton") then
-            goals.ImageTransparency = fadeIn and 0 or 1
-        end
-
-        if next(goals) then
-            table.insert(tweens, TweenService:Create(v, TweenInfo.new(duration), goals))
-        end
-    end
-
-    local completedCount = 0
-    local totalTweens = #tweens
-
-    local finished = Instance.new("BindableEvent")
-
-    for _, tween in ipairs(tweens) do
-        tween:Play()
-        tween.Completed:Connect(function()
-            completedCount = completedCount + 1
-            if completedCount >= totalTweens then
-                finished:Fire()
-            end
-        end)
-    end
-
-    finished.Event:Wait()
+-- // Add Groups & Elements
+do
+    local MainGroup = MainTab:AddLeftGroupbox('General Settings')
+    MainGroup:AddLabel('Welcome to the Main Tab!')
+    MainGroup:AddToggle('ExampleToggle', { Text = 'Enable Feature', Default = false })
+    MainGroup:AddSlider('ExampleSlider', { Text = 'Speed', Min = 0, Max = 100, Default = 50 })
 end
 
--- Tabs storage and current tab tracking
-local tabs = {}
-local currentTabName = nil
-
--- Create tab function
-local function CreateTab(name, yPos)
-    local tabButton = Instance.new("TextButton")
-    tabButton.Name = name .. "Tab"
-    tabButton.Text = name
-    tabButton.Size = UDim2.new(1, 0, 0, 30)
-    tabButton.Position = UDim2.new(0, 0, 0, yPos)
-    tabButton.BackgroundColor3 = COLORS.Card
-    tabButton.TextColor3 = COLORS.Text
-    tabButton.Font = Enum.Font.Code
-    tabButton.TextSize = 14
-    tabButton.Parent = sidebar
-
-    -- Content Frame for this tab inside whiteFrame
-    local tabContent = Instance.new("Frame")
-    tabContent.Name = name .. "Content"
-    tabContent.Size = UDim2.new(1, -20, 1, -20) -- smaller inside whiteFrame padding
-    tabContent.Position = UDim2.new(0, 10, 0, 10)
-    tabContent.BackgroundColor3 = COLORS.WhiteFrame -- White background for content area
-    tabContent.BorderSizePixel = 0
-    tabContent.Parent = whiteFrame
-    tabContent.Visible = false
-    tabContent.ZIndex = 3
-
-    tabs[name] = {
-        Button = tabButton,
-        Content = tabContent,
-    }
-
-    tabButton.MouseButton1Click:Connect(function()
-        if currentTabName == name then return end -- Already selected
-
-        -- Fade out old tab content (only content frame, whiteFrame always stays visible)
-        if currentTabName and tabs[currentTabName] then
-            local currentContent = tabs[currentTabName].Content
-            if currentContent.Visible then
-                FadeFrame(currentContent, false)
-                currentContent.Visible = false
-            end
-        end
-
-        -- Show and fade in new tab content
-        local newContent = tabContent
-        newContent.Visible = true
-        FadeFrame(newContent, true)
-
-        currentTabName = name
-    end)
-
-    return tabButton, tabContent
+do
+    local AimbotGroup = AimbotTab:AddLeftGroupbox('Aimbot Settings')
+    AimbotGroup:AddToggle('AimbotEnabled', { Text = 'Enable Aimbot', Default = false })
+    AimbotGroup:AddSlider('AimbotFOV', { Text = 'FOV', Min = 0, Max = 360, Default = 90 })
 end
 
--- Helper function to add placeholder text inside a frame
-local function addPlaceholderText(parent, text)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 30)
-    label.Position = UDim2.new(0, 0, 0, 10)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.Code
-    label.TextSize = 18
-    label.TextColor3 = COLORS.Text
-    label.Text = text
-    label.Parent = parent
+do
+    local VisualsGroup = VisualsTab:AddLeftGroupbox('Visuals Settings')
+    VisualsGroup:AddLabel('Visual Enhancements (Coming Soon)')
+    VisualsGroup:AddToggle('ESP', { Text = 'Enable ESP', Default = false })
 end
 
--- Create tabs example
-local tabNames = {"Main", "Aimbot", "Visuals", "Misc"}
-
-for i, tabName in ipairs(tabNames) do
-    local btn, content = CreateTab(tabName, (i - 1) * 30)
-    addPlaceholderText(content, tabName .. " tab content goes here.")
+do
+    local MiscGroup = MiscTab:AddLeftGroupbox('Miscellaneous')
+    MiscGroup:AddToggle('Bhop', { Text = 'Bunny Hop', Default = false })
+    MiscGroup:AddSlider('Volume', { Text = 'Volume', Min = 0, Max = 100, Default = 50 })
 end
 
--- Open first tab by default
-if #tabNames > 0 then
-    local firstTab = tabs[tabNames[1]]
-    firstTab.Button:CaptureFocus() -- Highlight first tab
-    firstTab.Button.MouseButton1Click:Wait() -- Trigger click once to show content
-end
+-- // Theme + Save Managers
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+
+ThemeManager:SetFolder('MyGameSenseUI')
+SaveManager:SetFolder('MyGameSenseUI')
+
+SaveManager:BuildConfigSection(Window)
+ThemeManager:ApplyToTab(Window:AddTab('UI Settings'))
+
+-- // Keybind to toggle menu
+Library.ToggleKeybind = Enum.KeyCode.RightShift
