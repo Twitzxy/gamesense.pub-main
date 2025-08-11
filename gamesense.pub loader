@@ -1,846 +1,23 @@
---[[
-	Mad.lol | Beta - Enhanced with new library
-	Fixed nil comparison errors and improved stability
-]]
+local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+local Window = Library:CreateWindow({ Title = '                     $ Mad.lol | Beta $                     ', AutoShow = true, TabPadding = 15, MenuFadeTime = 0.2 })
+local Tabs = { Main = Window:AddTab('Main'), ['UI Settings'] = Window:AddTab('UI Settings') }
 
--- // Library Implementation
-local library = {}
-local utility = {}
-local obelus = {
-	connections = {}
-}
--- // Variables
-local uis = game:GetService("UserInputService")
-local cre = game:GetService("CoreGui")
--- // Indexing
-library.__index = library
--- // Functions
-do
-	function utility:Create(createInfo)
-		local createInfo = createInfo or {}
-		--
-		if createInfo.Type then
-			local instance = Instance.new(createInfo.Type)
-			--
-			if createInfo.Properties and typeof(createInfo.Properties) == "table" then
-				for property, value in pairs(createInfo.Properties) do
-					instance[property] = value
-				end
-			end
-			--
-			return instance
-		end
-	end
-	--
-	function utility:Connection(connectionInfo)
-		local connectionInfo = connectionInfo or {}
-		--
-		if connectionInfo.Type then
-			local connection = connectionInfo.Type:Connect(connectionInfo.Callback or function() end)
-			--
-			obelus.connections[#obelus.connections + 1] = connection
-			--
-			return connection
-		end
-	end
-	--
-	function utility:RemoveConnection(connectionInfo)
-		local connectionInfo = connectionInfo or {}
-		--
-		if connectionInfo.Connection then
-			local found = table.find(obelus.connections, connectionInfo.Connection)
-			--
-			if found then
-				connectionInfo.Connection:Disconnect()
-				--
-				table.remove(obelus.connections, found)
-			end
-		end
-	end
-end
--- // Ui Functions
-do
-	function library:Window(windowInfo)
-		-- // Variables
-		local info = windowInfo or {}
-		local window = {Pages = {}, Dragging = false, Delta = UDim2.new(), Delta2 = Vector3.new()}
-		-- // Utilisation
-		local screen = utility:Create({Type = "ScreenGui", Properties = {
-			Parent = cre,
-			DisplayOrder = 8888,
-			IgnoreGuiInset = true,
-			Name = "obleus",
-			ZIndexBehavior = "Global",
-			ResetOnSpawn = false
-		}})
-		--
-		local main = utility:Create({Type = "Frame", Properties = {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = Color3.fromRGB(51, 51, 51),
-			BorderColor3 = Color3.fromRGB(0, 0, 0),
-			BorderMode = "Inset",
-			BorderSizePixel = 1,
-			Parent = screen,
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			Size = UDim2.new(0, 516, 0, 563)
-		}})
-		--
-		local frame = utility:Create({Type = "Frame", Properties = {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = Color3.fromRGB(12, 12, 12),
-			BorderSizePixel = 0,
-			Parent = main,
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			Size = UDim2.new(1, -2, 1, -2)
-		}})
-		--
-		local draggingButton = utility:Create({Type = "TextButton", Properties = {
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Parent = frame,
-			Position = UDim2.new(0, 0, 0, 0),
-			Size = UDim2.new(1, 0, 0, 24),
-			Text = ""
-		}})
-		--
-		local title = utility:Create({Type = "TextLabel", Properties = {
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Parent = frame,
-			Position = UDim2.new(0, 9, 0, 6),
-			Size = UDim2.new(1, -16, 0, 15),
-			Font = "Code",
-			RichText = true,
-			Text = info.Name or info.name or "Mad.lol | Beta",
-			TextColor3 = Color3.fromRGB(142, 142, 142),
-			TextStrokeTransparency = 0.5,
-			TextSize = 13,
-			TextXAlignment = "Left"
-		}})
-		--
-		local accent = utility:Create({Type = "Frame", Properties = {
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Parent = frame,
-			Position = UDim2.new(0, 8, 0, 22),
-			Size = UDim2.new(1, -16, 0, 2)
-		}})
-		--
-		local accentFirst = utility:Create({Type = "Frame", Properties = {
-			BackgroundColor3 = Color3.fromRGB(170, 85, 235),
-			BorderSizePixel = 0,
-			Parent = accent,
-			Position = UDim2.new(0, 0, 0, 0),
-			Size = UDim2.new(1, 0, 0, 1)
-		}})
-		--
-		local accentSecond = utility:Create({Type = "Frame", Properties = {
-			BackgroundColor3 = Color3.fromRGB(101, 51, 141),
-			BorderSizePixel = 0,
-			Parent = accent,
-			Position = UDim2.new(0, 0, 0, 1),
-			Size = UDim2.new(1, 0, 0, 1)
-		}})
-		--
-		local tabs = utility:Create({Type = "Frame", Properties = {
-			BackgroundColor3 = Color3.fromRGB(1, 1, 1),
-			BorderSizePixel = 0,
-			Parent = frame,
-			Position = UDim2.new(0, 8, 0, 29),
-			Size = UDim2.new(1, -16, 0, 30)
-		}})
-		--
-		local tabsInline = utility:Create({Type = "Frame", Properties = {
-			BackgroundColor3 = Color3.fromRGB(1, 1, 1),
-			BorderSizePixel = 0,
-			Parent = tabs,
-			Position = UDim2.new(0, 0, 0, 0),
-			Size = UDim2.new(1, -1, 1, 0)
-		}})
-		--
-		utility:Create({Type = "UIListLayout", Properties = {
-			Padding = UDim.new(0, 0),
-			Parent = tabsInline,
-			FillDirection = "Horizontal"
-		}})
-		--
-		local pagesHolder = utility:Create({Type = "Frame", Properties = {
-			BackgroundColor3 = Color3.fromRGB(51, 51, 51),
-			BorderColor3 = Color3.fromRGB(0, 0, 0),
-			BorderMode = "Inset",
-			BorderSizePixel = 1,
-			Parent = frame,
-			Position = UDim2.new(0, 8, 0, 65),
-			Size = UDim2.new(1, -16, 1, -76)
-		}})
-		--
-		local pagesFrame = utility:Create({Type = "Frame", Properties = {
-			BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-			BorderSizePixel = 0,
-			Parent = pagesHolder,
-			Position = UDim2.new(0, 1, 0, 1),
-			Size = UDim2.new(1, -2, 1, -2)
-		}})
-		--
-		local pagesFolder = utility:Create({Type = "Folder", Properties = {
-			Parent = pagesFrame
-		}})
-		-- // Functions / Connections
-		local connection = utility:Connection({Type = draggingButton.InputBegan, Callback = function(Input)
-			if not window.Dragging and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-				window.Dragging = true
-				window.Delta = main.Position
-				window.Delta2 = Input.Position
-			end
-		end})
-		--
-		local connection2 = utility:Connection({Type = uis.InputEnded, Callback = function(Input)
-			if window.Dragging and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-				window.Dragging = false
-				window.Delta = UDim2.new()
-				window.Delta2 = Vector3.new()
-			end
-		end})
-		--
-		local connection3 = utility:Connection({Type = uis.InputChanged, Callback = function(Input)
-			if window.Dragging then
-				local Delta = Input.Position - window.Delta2
-				main.Position = UDim2.new(window.Delta.X.Scale, window.Delta.X.Offset + Delta.X, window.Delta.Y.Scale, window.Delta.Y.Offset + Delta.Y)
-			end
-		end})
-		-- // Nested Functions
-		function window:RefreshTabs()
-			for index, page in pairs(window.Pages) do
-				page.Tab.Size = UDim2.new(1 / (#window.Pages), 0, 1, 0)
-			end
-		end
-		--
-		function window:Page(pageInfo)
-			-- // Variables
-			local info = pageInfo or {}
-			local page = {Open = false}
-			-- // Utilisation
-			local tab = utility:Create({Type = "Frame", Properties = {
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Parent = tabsInline,
-				Size = UDim2.new(1, 0, 1, 0)
-			}})
-			--
-			local tabButton = utility:Create({Type = "TextButton", Properties = {
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Parent = tab,
-				Position = UDim2.new(0, 0, 0, 0),
-				Size = UDim2.new(1, 0, 1, 0)
-			}})
-			--
-			local tabInline = utility:Create({Type = "Frame", Properties = {
-				BackgroundColor3 = Color3.fromRGB(41, 41, 41),
-				BorderSizePixel = 0,
-				Parent = tab,
-				Position = UDim2.new(0, 1, 0, 1),
-				Size = UDim2.new(1, -1, 1, -2)
-			}})
-			--
-			local tabInlineGradient = utility:Create({Type = "Frame", Properties = {
-				BackgroundColor3 = Color3.fromRGB(41, 41, 41),
-				BorderSizePixel = 0,
-				Parent = tabInline,
-				Position = UDim2.new(0, 1, 0, 1),
-				Size = UDim2.new(1, -2, 1, -2)
-			}})
-			--
-			local tabGradient = utility:Create({Type = "UIGradient", Properties = {
-				Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 100))}),
-				Rotation = 90,
-				Parent = tabInlineGradient
-			}})
-			--
-			local tabTitle = utility:Create({Type = "TextLabel", Properties = {
-				AnchorPoint = Vector2.new(0, 0.5),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Parent = tabInlineGradient,
-				Position = UDim2.new(0, 4, 0.5, 0),
-				Size = UDim2.new(1, -8, 0, 15),
-				Font = "Code",
-				RichText = true,
-				Text = info.Name or info.name or "tab",
-				TextColor3 = Color3.fromRGB(142, 142, 142),
-				TextStrokeTransparency = 0.5,
-				TextSize = 13,
-				TextXAlignment = "Center"
-			}})
-			--
-			local pageHolder = utility:Create({Type = "Frame", Properties = {
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Parent = pagesFolder,
-				Position = UDim2.new(0, 10, 0, 10),
-				Size = UDim2.new(1, -20, 1, -20),
-				Visible = false
-			}})
-			--
-			local leftHolder = utility:Create({Type = "Frame", Properties = {
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Parent = pageHolder,
-				Position = UDim2.new(0, 0, 0 ,0),
-				Size = UDim2.new(0.5, -5, 1, 0)
-			}})
-			--
-			local rightHolder = utility:Create({Type = "Frame", Properties = {
-				AnchorPoint = Vector2.new(1, 0),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Parent = pageHolder,
-				Position = UDim2.new(1, 0, 0 ,0),
-				Size = UDim2.new(0.5, -5, 1, 0)
-			}})
-			-- // Functions / Connections
-			utility:Connection({Type = tabButton.MouseButton1Down, Callback = function()
-				if not page.open then
-					for index, other_page in pairs(window.Pages) do
-						if other_page ~= page then
-							other_page:Turn(false)
-						end
-					end
-				end
-				--
-				page:Turn(true)
-			end})
-			-- // Nested Functions
-			function page:Turn(state)
-				tabTitle.TextColor3 = state and Color3.fromRGB(170, 85, 235) or Color3.fromRGB(142, 142, 142)
-				tabGradient.Color = state and ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(155, 155, 155))}) or ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 100))})
-				--
-				page.PageHolder.Visible = state
-				page.Open = state
-			end
-			--
-			function page:Section(sectionInfo)
-				-- // Variables
-				local info = sectionInfo or {}
-				local section = {}
-				-- // Utilisation
-				local sectionMain = utility:Create({Type = "Frame", Properties = {
-					BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-					BorderColor3 = Color3.fromRGB(13, 13, 13),
-					BorderMode = "Inset",
-					BorderSizePixel = 1,
-					Parent = page[((info.Side and info.Side:lower() == "right") or (info.side and info.side:lower() == "right")) and "Right" or "Left"],
-					Position = UDim2.new(0, 0, 0, 0),
-					Size = UDim2.new(1, 0, 0, (info.Size or info.size or 200) + 4)
-				}})
-				--
-				local sectionFrame = utility:Create({Type = "Frame", Properties = {
-					BackgroundColor3 = Color3.fromRGB(19, 19, 19),
-					BorderSizePixel = 0,
-					Parent = sectionMain,
-					Position = UDim2.new(0, 1, 0, 1),
-					Size = UDim2.new(1, -2, 1, -2)
-				}})
-				--
-				local sectionTitle = utility:Create({Type = "TextLabel", Properties = {
-					AnchorPoint = Vector2.new(0, 0.5),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Parent = sectionMain,
-					Position = UDim2.new(0, 13, 0, 0),
-					Size = UDim2.new(1, -26, 0, 15),
-					Font = "Code",
-					RichText = true,
-					Text = info.Name or info.name or "new section",
-					TextColor3 = Color3.fromRGB(205, 205, 205),
-					TextStrokeTransparency = 0.5,
-					TextSize = 13,
-					TextXAlignment = "Left",
-					ZIndex = 2
-				}})
-				--
-				local sectionTitleLine = utility:Create({Type = "Frame", Properties = {
-					BackgroundColor3 = Color3.fromRGB(19, 19, 19),
-					BorderSizePixel = 0,
-					Parent = sectionMain,
-					Position = UDim2.new(0, 9, 0, 0),
-					Size = UDim2.new(0, sectionTitle.TextBounds.X + 6, 0, 1)
-				}})
-				--
-				local sectionScrolling = utility:Create({Type = "Frame", Properties = {
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Parent = sectionMain,
-					Position = UDim2.new(0, 1, 0, 1),
-					Size = UDim2.new(1, -2, 1, -2),
-					Visible = false
-				}})
-				--
-				local sectionScrollingBar = utility:Create({Type = "Frame", Properties = {
-					AnchorPoint = Vector2.new(1, 0),
-					BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-					BorderSizePixel = 0,
-					Parent = sectionScrolling,
-					Position = UDim2.new(1, 0, 0, 0),
-					Size = UDim2.new(0, 5, 1, 0),
-					ZIndex = 3
-				}})
-				--
-				local sectionScrollingGradient = utility:Create({Type = "ImageLabel", Properties = {
-					AnchorPoint = Vector2.new(0, 1),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Parent = sectionScrolling,
-					Position = UDim2.new(0, 0, 1, 0),
-					Size = UDim2.new(1, 0, 0, 20),
-					ZIndex = 2,
-					Image = "rbxassetid://7783533907",
-					ImageTransparency = 0,
-					ImageColor3 = Color3.fromRGB(19, 19, 19),
-					ScaleType = "Stretch"
-				}})
-				--
-				local sectionContentHolder = utility:Create({Type = "ScrollingFrame", Properties = {
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Parent = sectionFrame,
-					Position = UDim2.new(0, 0, 0, 0),
-					Size = UDim2.new(1, 0, 1, 0),
-					ZIndex = 4,
-					AutomaticCanvasSize = "Y",
-					BottomImage = "rbxassetid://7783554086",
-					CanvasSize = UDim2.new(0, 0, 0, 0),
-					MidImage = "rbxassetid://7783554086",
-					ScrollBarImageColor3 = Color3.fromRGB(65, 65, 65),
-					ScrollBarThickness = 4,
-					TopImage = "rbxassetid://7783554086",
-					VerticalScrollBarInset = "ScrollBar"
-				}})
-				--
-				utility:Create({Type = "UIListLayout", Properties = {
-					Padding = UDim.new(0, 5),
-					Parent = sectionContentHolder,
-					FillDirection = "Vertical"
-				}})
-				--
-				local sectionInline = utility:Create({Type = "Frame", Properties = {
-					BackgroundColor3 = Color3.fromRGB(19, 19, 19),
-					BorderSizePixel = 0,
-					Parent = sectionContentHolder,
-					Position = UDim2.new(0, 1, 0, 1),
-					Size = UDim2.new(1, 0, 0, 10)
-				}})
-				-- // Functions / Connections
-				-- // Nested Functions
-				function section:Update()
-					if sectionContentHolder.AbsoluteCanvasSize.Y > ((info.Size or info.size or 200) + 4) then
-						sectionScrolling.Visible = true
-					else
-						sectionScrolling.Visible = false
-					end
-				end
-				--
-				function section:Label(labelInfo)
-					-- // Variables
-					local info = labelInfo or {}
-					local label = {}
-					-- // Utilisation
-					local contentHolder = utility:Create({Type = "Frame", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = sectionContentHolder,
-						Size = UDim2.new(1, 0, 0, 14)
-					}})
-					--
-					local labelTitle = utility:Create({Type = "TextLabel", Properties = {
-						AnchorPoint = Vector2.new(0, 0),
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Size = UDim2.new(1, -(info.Offset or 36), 1, 0),
-						Position = UDim2.new(0, info.Offset or 36, 0, 0),
-						Font = "Code",
-						RichText = true,
-						Text = info.Name or info.name or info.Text or info.text or "new label",
-						TextColor3 = Color3.fromRGB(180, 180, 180),
-						TextStrokeTransparency = 0.5,
-						TextSize = 13,
-						TextXAlignment = "Left"
-					}})
-					-- // Functions / Connections
-					-- // Nested Functions
-					function label:Remove()
-						contentHolder:Remove()
-						label = nil
-						--
-						section:Update()
-					end
-					-- // Returning + Other
-					section:Update()
-					--
-					return label
-				end
-				--
-				function section:Toggle(toggleInfo)
-					-- // Variables
-					local info = toggleInfo or {}
-					local toggle = {
-						state = (info.Default or info.default or info.Def or info.def or false),
-						callback = (info.Callback or info.callback or function() end)
-					}
-					-- // Utilisation
-					local contentHolder = utility:Create({Type = "Frame", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = sectionContentHolder,
-						Size = UDim2.new(1, 0, 0, 14)
-					}})
-					--
-					local toggleButton = utility:Create({Type = "TextButton", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Position = UDim2.new(0, 0, 0, 0),
-						Size = UDim2.new(1, 0, 1, 0),
-						Text = ""
-					}})
-					--
-					local toggleTitle = utility:Create({Type = "TextLabel", Properties = {
-						AnchorPoint = Vector2.new(0, 0),
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Size = UDim2.new(1, -36, 1, 0),
-						Position = UDim2.new(0, 36, 0, 0),
-						Font = "Code",
-						RichText = true,
-						Text = info.Name or info.name or info.Text or info.text or "new toggle",
-						TextColor3 = Color3.fromRGB(180, 180, 180),
-						TextStrokeTransparency = 0.5,
-						TextSize = 13,
-						TextXAlignment = "Left"
-					}})
-					--
-					local toggleFrame = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = Color3.fromRGB(1, 1, 1),
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Position = UDim2.new(0, 16, 0, 2),
-						Size = UDim2.new(0, 10, 0, 10)
-					}})
-					--
-					local toggleInlineGradient = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = toggle.state and Color3.fromRGB(170, 85, 235) or Color3.fromRGB(63, 63, 63),
-						BorderSizePixel = 0,
-						Parent = toggleFrame,
-						Position = UDim2.new(0, 1, 0, 1),
-						Size = UDim2.new(1, -2, 1, -2)
-					}})
-					--
-					local toggleGradient = utility:Create({Type = "UIGradient", Properties = {
-						Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(125, 125, 125))}),
-						Rotation = 90,
-						Parent = toggleInlineGradient
-					}})
-					-- // Functions / Connections
-					local connection = utility:Connection({Type = toggleButton.MouseButton1Down, Callback = function()
-						toggle.state = not toggle.state
-						toggleInlineGradient.BackgroundColor3 = toggle.state and Color3.fromRGB(170, 85, 235) or Color3.fromRGB(63, 63, 63)
-						toggle.callback(toggle.state)
-					end})
-					-- // Nested Functions
-					function toggle:Remove()
-						contentHolder:Remove()
-						toggle = nil
-						--
-						utility:RemoveConnection({Connection = connection})
-						connection = nil
-						--
-						section:Update()
-					end
-					--
-					function toggle:Get()
-						return toggle.state
-					end
-					--
-					function toggle:Set(value)
-						if typeof(value) == "boolean" then
-							toggle.state = value
-							toggleInlineGradient.BackgroundColor3 = toggle.state and Color3.fromRGB(170, 85, 235) or Color3.fromRGB(63, 63, 63)
-							toggle.callback(toggle.state)
-						end
-					end
-					-- // Returning + Other
-					section:Update()
-					--
-					return toggle
-				end
-				--
-				function section:Button(buttonInfo)
-					-- // Variables
-					local info = buttonInfo or {}
-					local button = {
-						callback = (info.Callback or info.callback or function() end)
-					}
-					-- // Utilisation
-					local contentHolder = utility:Create({Type = "Frame", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = sectionContentHolder,
-						Size = UDim2.new(1, 0, 0, 20)
-					}})
-					--
-					local buttonButton = utility:Create({Type = "TextButton", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Position = UDim2.new(0, 0, 0, 0),
-						Size = UDim2.new(1, 0, 1, 0),
-						Text = ""
-					}})
-					--
-					local buttonFrame = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-						BorderColor3 = Color3.fromRGB(1, 1, 1),
-						BorderMode = "Inset",
-						BorderSizePixel = 1,
-						Parent = contentHolder,
-						Position = UDim2.new(0, 16, 0, 0),
-						Size = UDim2.new(1, -32, 1, 0)
-					}})
-					--
-					local buttonInline = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = Color3.fromRGB(25, 25, 25),
-						BorderSizePixel = 0,
-						Parent = buttonFrame,
-						Position = UDim2.new(0, 1, 0, 1),
-						Size = UDim2.new(1, -2, 1, -2)
-					}})
-					--
-					local buttonTitle = utility:Create({Type = "TextLabel", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Size = UDim2.new(1, -32, 1, 0),
-						Position = UDim2.new(0, 16, 0, 0),
-						Font = "Code",
-						RichText = true,
-						Text = info.Name or info.name or info.Text or info.text or "new button",
-						TextColor3 = Color3.fromRGB(180, 180, 180),
-						TextStrokeTransparency = 0.5,
-						TextSize = 13,
-						TextXAlignment = "Center"
-					}})
-					--
-					-- // Functions / Connections
-					local connection = utility:Connection({Type = buttonButton.MouseButton1Down, Callback = function()
-						button.callback()
-					end})
-					-- // Nested Functions
-					function button:Remove()
-						contentHolder:Remove()
-						button = nil
-						--
-						utility:RemoveConnection({Connection = connection})
-						connection = nil
-						--
-						section:Update()
-					end
-					-- // Returning + Other
-					section:Update()
-					--
-					return button
-				end
-				--
-				function section:Slider(sliderInfo)
-					-- // Variables
-					local info = sliderInfo or {}
-					local slider = {
-						state = (info.Default or info.default or info.Def or info.def or 0),
-						min = (info.Minimum or info.minimum or info.Min or info.min or 0),
-						max = (info.Maximum or info.maximum or info.Max or info.max or 10),
-						decimals = (1 / (info.Decimals or info.decimals or info.Tick or info.tick or 0.25)),
-						suffix = (info.Suffix or info.suffix or info.Ending or info.ending or ""),
-						callback = (info.Callback or info.callback or function() end),
-						holding = false
-					}
-					-- // Utilisation
-					local contentHolder = utility:Create({Type = "Frame", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = sectionContentHolder,
-						Size = UDim2.new(1, 0, 0, (info.Name or info.name or info.Text or info.text) and 24 or 10)
-					}})
-					--
-					local sliderButton = utility:Create({Type = "TextButton", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Position = UDim2.new(0, 0, 0, 0),
-						Size = UDim2.new(1, 0, 1, 0),
-						Text = ""
-					}})
-					--
-					if (info.Name or info.name or info.Text or info.text) then
-						local sliderTitle = utility:Create({Type = "TextLabel", Properties = {
-							AnchorPoint = Vector2.new(0, 0),
-							BackgroundTransparency = 1,
-							BorderSizePixel = 0,
-							Parent = contentHolder,
-							Size = UDim2.new(1, -16, 0, 14),
-							Position = UDim2.new(0, 16, 0, 0),
-							Font = "Code",
-							RichText = true,
-							Text = (info.Name or info.name or info.Text or info.text),
-							TextColor3 = Color3.fromRGB(180, 180, 180),
-							TextStrokeTransparency = 0.5,
-							TextSize = 13,
-							TextXAlignment = "Left"
-						}})
-					end
-					--
-					local sliderFrame = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = Color3.fromRGB(1, 1, 1),
-						BorderSizePixel = 0,
-						Parent = contentHolder,
-						Position = UDim2.new(0, 16, 0, (info.Name or info.name or info.Text or info.text) and 14 or 0),
-						Size = UDim2.new(1, -32, 0, 10)
-					}})
-					--
-					local sliderInlineGradient = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = Color3.fromRGB(63, 63, 63),
-						BorderSizePixel = 0,
-						Parent = sliderFrame,
-						Position = UDim2.new(0, 1, 0, 1),
-						Size = UDim2.new(1, -2, 1, -2)
-					}})
-					--
-					local sliderGradient = utility:Create({Type = "UIGradient", Properties = {
-						Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(125, 125, 125))}),
-						Rotation = 90,
-						Parent = sliderInlineGradient
-					}})
-					--
-					local sliderSlideHolder = utility:Create({Type = "Frame", Properties = {
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = sliderFrame,
-						Position = UDim2.new(0, 1, 0, 1),
-						Size = UDim2.new(1, -2, 1, -2)
-					}})
-					--
-					local sliderSlide = utility:Create({Type = "Frame", Properties = {
-						BackgroundColor3 = Color3.fromRGB(170, 85, 235),
-						BorderSizePixel = 0,
-						Parent = sliderSlideHolder,
-						Position = UDim2.new(0, 0, 0, 0),
-						Size = UDim2.new(0.5, 0, 1, 0)
-					}})
-					--
-					local sliderGradient = utility:Create({Type = "UIGradient", Properties = {
-						Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(125, 125, 125))}),
-						Rotation = 90,
-						Parent = sliderSlide
-					}})
-					--
-					local sliderValue = utility:Create({Type = "TextLabel", Properties = {
-						AnchorPoint = Vector2.new(0.5, 0.25),
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						Parent = sliderSlide,
-						Size = UDim2.new(0, 10, 0, 14),
-						Position = UDim2.new(1, 0, 0.5, 0),
-						Font = "Code",
-						RichText = true,
-						Text = tostring(slider.state) .. tostring(slider.suffix),
-						TextColor3 = Color3.fromRGB(180, 180, 180),
-						TextStrokeTransparency = 0.5,
-						TextSize = 13,
-						TextXAlignment = "Left"
-					}})
-					-- // Functions / Connections
-					local connection = utility:Connection({Type = sliderButton.MouseButton1Down, Callback = function()
-						slider.holding = true
-						slider:Refresh()
-					end})
-					--
-					local connection2 = utility:Connection({Type = uis.InputEnded, Callback = function()
-						slider.holding = false
-					end})
-					--
-					local connection3 = utility:Connection({Type = uis.InputChanged, Callback = function()
-						if slider.holding then
-							slider:Refresh()
-						end
-					end})
-					-- // Nested Functions
-					function slider:Remove()
-						contentHolder:Remove()
-						slider = nil
-						--
-						utility:RemoveConnection({Connection = connection})
-						connection = nil
-						utility:RemoveConnection({Connection = connection2})
-						connection2 = nil
-						utility:RemoveConnection({Connection = connection3})
-						connection3 = nil
-						--
-						section:Update()
-					end
-					--
-					function slider:Get()
-						return slider.state
-					end
-					--
-					function slider:Set(value)
-						slider.state = math.clamp(math.round(value * slider.decimals) / slider.decimals, slider.min, slider.max)
-						sliderSlide.Size = UDim2.new(1 - ((slider.max - slider.state) / (slider.max - slider.min)), 0, 1, 0)
-						sliderValue.Text = tostring(slider.state) .. tostring(slider.suffix)
-						pcall(slider.callback, slider.state)
-					end
-					--
-					function slider:Refresh()
-						if slider.holding then
-							local mouseLocation = uis:GetMouseLocation()
-							slider:Set(math.clamp(math.floor((slider.min + (slider.max - slider.min) * (math.clamp(mouseLocation.X - sliderSlide.AbsolutePosition.X, 0, sliderSlideHolder.AbsoluteSize.X) / sliderSlideHolder.AbsoluteSize.X)) * slider.decimals) / slider.decimals, slider.min, slider.max))
-						end
-					end
-					-- // Returning + Other
-					section:Update()
-					slider:Set(slider.state)
-					--
-					return slider
-				end
-				-- // Returning + Other
-				return section
-			end
-			-- // Returning + Other
-			page.Tab = tab
-			page.PageHolder = pageHolder
-			page.Left = leftHolder
-			page.Right = rightHolder
-			--
-			window.Pages[#window.Pages + 1] = page
-			window:RefreshTabs()
-			--
-			return page
-		end
-		-- // Returning
-		return window
-	end
-end
-
--- // Game Services
 local LocalPlayer = game:GetService('Players').LocalPlayer
 local Players = game:GetService('Players')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TeleportService = game:GetService("TeleportService")
-local Lighting = game:GetService("Lighting")
-local GuiService = game:GetService("GuiService")
 
--- // Variables
+-- Main Tab
+local GunMods = Tabs.Main:AddRightGroupbox('Gun Mods')
+local KillAura = Tabs.Main:AddRightGroupbox('Combat')
+local TargetingGroup = Tabs.Main:AddLeftGroupbox('Targeting')
+local Target = Tabs.Main:AddLeftGroupbox('Target')
+
+-- Variables
 local lockedTarget = nil
 local StickyAimEnabled = false
 local TracerEnabled = false
@@ -865,42 +42,61 @@ local hiddenBulletsEnabled = false
 local spectateStrafeEnabled = false
 local AutoAmmoEnabled = false
 local strafeWasEnabledBeforeAmmoBuy = false
-local CFrameSpeedKeyBind = false
-local flyvariableshit = false
-local chatSpamTick = tick()
 
--- // Main Color
-local MainColor = Color3.fromRGB(255, 102, 204)
+-- Hitsounds
+getgenv().hitsounds = {
+    ["Bubble"] = "rbxassetid://6534947588",
+    ["Lazer"] = "rbxassetid://130791043",
+    ["Pick"] = "rbxassetid://1347140027",
+    ["Pop"] = "rbxassetid://198598793",
+    ["Rust"] = "rbxassetid://1255040462",
+    ["Sans"] = "rbxassetid://3188795283",
+    ["Fart"] = "rbxassetid://130833677",
+    ["Big"] = "rbxassetid://5332005053",
+    ["Vine"] = "rbxassetid://5332680810",
+    ["UwU"] = "rbxassetid://8679659744",
+    ["Bruh"] = "rbxassetid://4578740568",
+    ["Skeet"] = "rbxassetid://5633695679",
+    ["Neverlose"] = "rbxassetid://6534948092",
+    ["Fatality"] = "rbxassetid://6534947869",
+    ["Bonk"] = "rbxassetid://5766898159",
+    ["Minecraft"] = "rbxassetid://5869422451",
+    ["Gamesense"] = "rbxassetid://4817809188",
+    ["RIFK7"] = "rbxassetid://9102080552",
+    ["Bamboo"] = "rbxassetid://3769434519",
+    ["Crowbar"] = "rbxassetid://546410481",
+    ["Weeb"] = "rbxassetid://6442965016",
+    ["Beep"] = "rbxassetid://8177256015",
+    ["Bambi"] = "rbxassetid://8437203821",
+    ["Stone"] = "rbxassetid://3581383408",
+    ["Old Fatality"] = "rbxassetid://6607142036",
+    ["Click"] = "rbxassetid://8053704437",
+    ["Ding"] = "rbxassetid://7149516994",
+    ["Snow"] = "rbxassetid://6455527632",
+    ["Laser"] = "rbxassetid://7837461331",
+    ["Mario"] = "rbxassetid://2815207981",
+    ["Steve"] = "rbxassetid://4965083997",
+    ["Call of Duty"] = "rbxassetid://5952120301",
+    ["Bat"] = "rbxassetid://3333907347",
+    ["TF2 Critical"] = "rbxassetid://296102734",
+    ["Saber"] = "rbxassetid://8415678813",
+    ["Baimware"] = "rbxassetid://3124331820",
+    ["Osu"] = "rbxassetid://7149255551",
+    ["TF2"] = "rbxassetid://2868331684",
+    ["Slime"] = "rbxassetid://6916371803",
+    ["Among Us"] = "rbxassetid://5700183626",
+    ["One"] = "rbxassetid://7380502345"
+}
+getgenv().selectedHitsound = "Bubble"
+getgenv().hitsoundEnabled = false
+getgenv().hitsoundVolume = 1
 
--- // Global Environment Setup (Fixed nil comparison issues)
-getgenv().enabled = false
-getgenv().active = false
-getgenv().range = 250
-getgenv().whitelist = {}
-getgenv().lastHealth = {}
-
--- // Create Window
-local window = library:Window({name = "Mad.lol | Beta"})
-
--- // Create Pages
-local mainPage = window:Page({Name = "Main"})
-local visualsPage = window:Page({Name = "Visuals"})
-local movementPage = window:Page({Name = "Movement"})
-local settingsPage = window:Page({Name = "Settings"})
-
--- // Create Sections
-local combatSection = mainPage:Section({Name = "Combat", size = 300})
-local targetingSection = mainPage:Section({Name = "Targeting", side = "right", size = 200})
-local visualsSection = visualsPage:Section({Name = "Visuals", size = 250})
-local movementSection = movementPage:Section({Name = "Movement", size = 200})
-
--- // Sound Functions
-local function playHitsound()
+function playHitsound()
     if getgenv().hitsoundEnabled then
         local sound = Instance.new("Sound")
-        sound.Parent = game.Workspace
-        sound.SoundId = "rbxassetid://131961136"
-        sound.Volume = 0.5
+        sound.SoundId = getgenv().hitsounds[getgenv().selectedHitsound]
+        sound.Volume = getgenv().hitsoundVolume
+        sound.Parent = workspace
         sound:Play()
         sound.Ended:Connect(function()
             sound:Destroy()
@@ -908,105 +104,905 @@ local function playHitsound()
     end
 end
 
--- // Prediction Functions
-local function predictPosition(targetRoot, predictionMultiplier)
-    if not targetRoot then return nil end
+-- Tracers
+local tracer = Drawing.new("Line")
+tracer.Visible = false
+tracer.Thickness = 1
+tracer.Color = Color3.fromRGB(255, 255, 255)
+
+local killAuraTracer = Drawing.new("Line")
+killAuraTracer.Visible = false
+killAuraTracer.Thickness = 1
+killAuraTracer.Color = Color3.fromRGB(255, 0, 0)
+
+function predictPosition(targetRoot, predictionMultiplier)
+    if not targetRoot then return targetRoot.Position end
     if targetRoot.Velocity.Magnitude > 700 then
         return targetRoot.Position
     end
     return targetRoot.Position + (targetRoot.Velocity * predictionMultiplier)
 end
 
--- // Combat Features
-combatSection:Toggle({
-    Name = "Kill Aura",
+-- Sticky Aim
+TargetingGroup:AddToggle("StickyAim", {
+    Text = "Sticky Aim",
     Default = false,
-    Callback = function(state)
-        getgenv().enabled = state
+    Callback = function(Value)
+        StickyAimEnabled = Value
+        if not Value then
+            lockedTarget = nil
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+            tracer.Visible = false
+        end
+    end
+}):AddKeyPicker("StickyAimKeybind", {
+    Default = "C",
+    NoUI = false,
+    Text = "Sticky Aim",
+    Mode = "Toggle",
+    Callback = function()
+        if UserInputService:GetFocusedTextBox() then return end
+        if lockedTarget then
+            lockedTarget = nil
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+            tracer.Visible = false
+        else
+            local camera = workspace.CurrentCamera
+            local mouseLocation = UserInputService:GetMouseLocation()
+            local closestTarget, closestDistance = nil, math.huge
+
+            for _, otherPlayer in ipairs(Players:GetPlayers()) do
+                if otherPlayer ~= LocalPlayer and otherPlayer.Character and otherPlayer.Character:FindFirstChild(targetHitPart) then
+                    local bodyEffects = otherPlayer.Character:FindFirstChild("BodyEffects")
+                    local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
+                    local isGrabbed = otherPlayer.Character:FindFirstChild("GRABBING_CONSTRAINT")
+
+                    if (not grabCheckEnabled or not isGrabbed) and
+                       (not friendCheckEnabled or not LocalPlayer:IsFriendsWith(otherPlayer.UserId)) then
+
+                        local targetPart = otherPlayer.Character[targetHitPart]
+                        local screenPosition, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+                        if onScreen then
+                            local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - mouseLocation).Magnitude
+                            if distance < closestDistance then
+                                closestTarget = otherPlayer
+                                closestDistance = distance
+                            end
+                        end
+                    end
+                end
+            end
+
+            if closestTarget then
+                lockedTarget = closestTarget
+            end
+        end
     end
 })
 
-combatSection:Toggle({
-    Name = "Active",
+-- Spectate
+local maddieplsnomad = false
+TargetingGroup:AddToggle("ViewTarget", {
+    Text = "spectate",
+    Default = false,
+    Callback = function(Value)
+        maddieplsnomad = Value
+        if not Value then
+            ViewTargetEnabled = false
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        end
+    end
+}):AddKeyPicker("ViewTargetKeybind", {
+    Default = "B",
+    NoUI = false,
+    Text = "spectate",
+    Mode = "Toggle",
+    Callback = function()
+        if not maddieplsnomad or UserInputService:GetFocusedTextBox() then return end
+        ViewTargetEnabled = not ViewTargetEnabled
+        if ViewTargetEnabled and lockedTarget then
+            workspace.CurrentCamera.CameraSubject = lockedTarget.Character
+        else
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        end
+    end
+})
+
+-- Hit Part Selection
+TargetingGroup:AddDropdown("hp", {
+    Text = "Hit Part",
+    Values = {"Head", "HumanoidRootPart", "UpperTorso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"},
+    Default = "Head",
+    Callback = function(Value)
+        targetHitPart = Value
+    end
+})
+
+-- Target Strafe
+Target:AddToggle("StrafeToggle", {
+    Text = "Target Strafe",
+    Default = false,
+    Callback = function(Value)
+        strafeEnabled = Value
+        if not Value then
+            if Core then
+                Core:Destroy()
+                Core = nil
+            end
+            if BodyVelocity then
+                BodyVelocity:Destroy()
+                BodyVelocity = nil
+            end
+            if oldPosition then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = oldPosition
+                oldPosition = nil
+            end
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        end
+    end
+}):AddKeyPicker("StrafeKeybind", {
+    Default = "N",
+    NoUI = false,
+    Text = "Strafe",
+    Mode = "Toggle",
+    Callback = function()
+        if UserInputService:GetFocusedTextBox() then return end
+        strafeEnabled = not strafeEnabled
+        if not strafeEnabled then
+            if Core then
+                Core:Destroy()
+                Core = nil
+            end
+            if BodyVelocity then
+                BodyVelocity:Destroy()
+                BodyVelocity = nil
+            end
+            if oldPosition then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = oldPosition
+                oldPosition = nil
+            end
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        end
+    end
+})
+
+-- Spectate Strafe
+Target:AddToggle("SpectateStrafe", {
+    Text = "Spectate Strafe",
+    Default = false,
+    Callback = function(Value)
+        spectateStrafeEnabled = Value
+        if not Value then
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        end
+    end
+})
+
+-- Strafe Mode
+Target:AddDropdown("StrafeMode", {
+    Text = "Strafe Mode",
+    Values = {"Orbit", "Random"},
+    Default = "Orbit",
+    Callback = function(Value)
+        strafeMode = Value
+    end
+})
+
+-- Strafe Speed
+Target:AddSlider("StrafeSpeed", {
+    Text = "Speed units",
+    Default = 5,
+    Min = 1,
+    Max = 20,
+    Rounding = 1,
+    Callback = function(Value)
+        strafeSpeed = Value
+    end
+})
+
+-- Strafe Offset
+Target:AddSlider("StrafeXOffset", {
+    Text = "z offset",
+    Default = 5,
+    Min = 1,
+    Max = 20,
+    Rounding = 1,
+    Callback = function(Value)
+        strafeXOffset = Value
+    end
+})
+
+-- Movement Prediction
+Target:AddToggle("PredictMovement", {
+    Text = "predict movement",
+    Default = false,
+    Callback = function(Value)
+        predictMovementEnabled = Value
+    end
+})
+
+-- Prediction Distance
+Target:AddSlider("StrafePredictionDistance", {
+    Text = "movement prediction",
+    Default = 0.3,
+    Min = 0.1,
+    Max = 10,
+    Rounding = 1,
+    Callback = function(Value)
+        PredicTvalue = Value
+    end
+})
+
+-- Stomp Target
+TargetingGroup:AddToggle("StompTarget", {
+    Text = "Stomp Target",
+    Default = false,
+    Callback = function(Value)
+        stompTargetEnabled = Value
+    end
+})
+
+-- Hidden Bullets
+TargetingGroup:AddToggle("HiddenBullets", {
+    Text = "invisible bullets",
+    Default = false,
+    Callback = function(Value)
+        hiddenBulletsEnabled = Value
+    end
+})
+
+-- Auto Ammo
+TargetingGroup:AddToggle("AutoAmmo", {
+    Text = "Auto Ammo",
+    Default = false,
+    Callback = function(Value)
+        AutoAmmoEnabled = Value
+    end
+})
+
+-- Kill Say
+local killSayEnabled = false
+local killSayMessages = {
+    "mad.lol is a free script and u die to it..", 
+    "Must be hard without mad.lol 💔", 
+    "Why aim when mad.lol does it for you?",
+    "Bros not on mad.lol already 😂",
+    "Cant be me icl",
+    "cant win a hvh? maybe try /madlolhvh",
+    "if u wanna win hop in /madlolhvh",
+    "hey come on if u cant win get mad . lol",
+    "how to win a hvh? step 1 get mad . lol"
+}
+
+TargetingGroup:AddToggle("killsay", { 
+    Text = "Kill Say", 
+    Default = false,
+    Callback = function(Value)
+        killSayEnabled = Value
+    end
+})
+
+-- Rapid Fire
+local RapidFireEnabled = false
+local hyperFireEnabled = false
+local modifiedTools = {}
+
+local function rapidfire(tool)
+    if not tool or not tool:FindFirstChild("GunScript") or modifiedTools[tool] then return end
+
+    for _, v in ipairs(getconnections(tool.Activated)) do
+        local funcinfo = debug.getinfo(v.Function)
+        for i = 1, funcinfo.nups do
+            local c, n = debug.getupvalue(v.Function, i)
+            if type(c) == "number" then
+                debug.setupvalue(v.Function, i, 0.0000000000001)
+            end
+        end
+    end
+
+    modifiedTools[tool] = true
+end
+
+local function onCharacterAdded(character)
+    for _, tool in ipairs(character:GetChildren()) do
+        if tool:IsA("Tool") and tool:FindFirstChild("Handle") then
+            rapidfire(tool)
+        end
+    end
+
+    character.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and child:FindFirstChild("Handle") then
+            rapidfire(child)
+        end
+    end)
+end
+
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+GunMods:AddToggle("RapidFireToggle", {
+    Text = "Rapid Fire",
+    Default = false,
+    Callback = function(Value)
+        RapidFireEnabled = Value
+        if Value then
+            modifiedTools = {}
+            if LocalPlayer.Character then
+                onCharacterAdded(LocalPlayer.Character)
+            end
+        end
+    end
+})
+
+-- Hyper Fire
+local function updateHyperFire()
+    for _, obj in ipairs(game:GetDescendants()) do
+        if obj.Name == "ToleranceCooldown" and obj:IsA("ValueBase") then
+            obj.Value = 0 
+        end
+    end
+end
+
+GunMods:AddToggle("HyperFireToggle", {
+    Text = "Rapid Fire v2",
+    Default = false,
+    Callback = function(Value)
+        hyperFireEnabled = Value
+        updateHyperFire()
+    end
+})
+
+game.DescendantAdded:Connect(function(obj)
+    if obj.Name == "ToleranceCooldown" and obj:IsA("ValueBase") then
+        obj.Value = hyperFireEnabled and 0 or 3
+    end
+end)
+
+-- Hitbox Expander
+local HBE = Tabs.Main:AddRightGroupbox('HBE')
+local size = 10
+local hitboxColor = Color3.new(0, 1, 1)
+local visualizeHitbox = false
+local hitboxExpanderEnabled = false
+
+HBE:AddToggle('HitboxExpanderToggle', {
+    Text = 'Hitbox Expander',
     Default = false,
     Callback = function(state)
+        hitboxExpanderEnabled = state
+        if not state then
+            for _, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer and Player.Character then
+                    resetCharacter(Player.Character)
+                end
+            end
+        end
+    end,
+}):AddKeyPicker("FlightKeybindPicker", {
+    Default = "L",
+    Text = "Hitbox",
+    Mode = "Toggle",
+    Callback = function(state)
+        if UserInputService:GetFocusedTextBox() then return end
+        hitboxExpanderEnabled = state
+        if not state then
+            for _, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer and Player.Character then
+                    resetCharacter(Player.Character)
+                end
+            end
+        end
+    end
+})
+
+HBE:AddSlider('HitboxSizeSlider', {
+    Text = 'Hitbox Size',
+    Default = 10,
+    Min = 10,
+    Max = 50,
+    Rounding = 0,
+    Callback = function(value)
+        size = value
+    end,
+})
+
+HBE:AddToggle('VisualizerToggle', {
+    Text = 'Visualize',
+    Default = false,
+    Callback = function(state)
+        visualizeHitbox = state
+        if not state then
+            for _, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer and Player.Character then
+                    removeVisuals(Player.Character)
+                end
+            end
+        end
+    end,
+}):AddColorPicker('HitboxColorPicker', {
+    Text = 'Hitbox Color',
+    Default = Color3.new(0, 1, 1),
+    Callback = function(color)
+        hitboxColor = color
+    end,
+})
+
+local function removeVisuals(Character)
+    if not Character then return end
+    local HRP = Character:FindFirstChild("HumanoidRootPart")
+    if HRP then
+        local outline = HRP:FindFirstChild("HitboxOutline")
+        if outline then outline:Destroy() end
+        local glow = HRP:FindFirstChild("HitboxGlow")
+        if glow then glow:Destroy() end
+    end
+end
+
+local function resetCharacter(Character)
+    if not Character then return end
+    local HRP = Character:FindFirstChild("HumanoidRootPart")
+    if HRP then
+        HRP.Size = Vector3.new(2, 1, 2)
+        HRP.Transparency = 1
+        HRP.CanCollide = true
+        removeVisuals(Character)
+    end
+end
+
+local function handleCharacter(Character)
+    if not Character or not hitboxExpanderEnabled then
+        resetCharacter(Character)
+        return
+    end
+    local HRP = Character:FindFirstChild("HumanoidRootPart") or Character:WaitForChild("HumanoidRootPart", 5)
+    if not HRP then return end
+
+    HRP.Size = Vector3.new(size, size, size)
+    HRP.Transparency = 1
+    HRP.CanCollide = false
+
+    if visualizeHitbox then
+        local outline = HRP:FindFirstChild("HitboxOutline")
+        if not outline then
+            outline = Instance.new("BoxHandleAdornment")
+            outline.Name = "HitboxOutline"
+            outline.Adornee = HRP
+            outline.Size = HRP.Size
+            outline.Transparency = 0.8
+            outline.ZIndex = 10
+            outline.AlwaysOnTop = true
+            outline.Color3 = hitboxColor
+            outline.Parent = HRP
+
+            local glow = Instance.new("BoxHandleAdornment")
+            glow.Name = "HitboxGlow"
+            glow.Adornee = HRP
+            glow.Size = HRP.Size + Vector3.new(0.1, 0.1, 0.1)
+            glow.Transparency = 0.9
+            glow.ZIndex = 9
+            glow.AlwaysOnTop = true
+            glow.Color3 = hitboxColor
+            glow.Parent = HRP
+        else
+            outline.Size = HRP.Size
+            outline.Color3 = hitboxColor
+            local glow = HRP:FindFirstChild("HitboxGlow")
+            if glow then
+                glow.Size = HRP.Size + Vector3.new(0.1, 0.1, 0.1)
+                glow.Color3 = hitboxColor
+            end
+        end
+    else
+        removeVisuals(Character)
+    end
+end
+
+local function handlePlayer(Player)
+    if Player == LocalPlayer then return end
+    Player.CharacterAdded:Connect(function(Character)
+        Character:WaitForChild("HumanoidRootPart")
+        handleCharacter(Character)
+    end)
+    if Player.Character then
+        handleCharacter(Player.Character)
+    end
+end
+
+for _, Player in pairs(Players:GetPlayers()) do
+    handlePlayer(Player)
+end
+
+Players.PlayerAdded:Connect(handlePlayer)
+
+RunService.Heartbeat:Connect(function()
+    if not hitboxExpanderEnabled then
+        for _, Player in pairs(Players:GetPlayers()) do
+            if Player ~= LocalPlayer and Player.Character then
+                resetCharacter(Player.Character)
+            end
+        end
+        return
+    end
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character then
+            handleCharacter(Player.Character)
+        end
+    end
+end)
+
+-- Kill Aura
+getgenv().range = 250
+getgenv().whitelist = {}
+getgenv().tracer = Instance.new("Part")
+getgenv().tracer.Size = Vector3.new(0.2, 0.2, 0.2)
+getgenv().tracer.Material = Enum.Material.Neon
+getgenv().tracer.Color = Color3.new(1, 0, 0)
+getgenv().tracer.Transparency = 1
+getgenv().tracer.Anchored = true
+getgenv().tracer.CanCollide = false
+getgenv().tracer.Parent = workspace
+
+getgenv().enabled = false
+getgenv().active = false
+getgenv().visualizeEnabled = false
+getgenv().silentEnabled = false
+getgenv().lastHealth = {}
+
+KillAura:AddToggle('MainToggle', {
+    Text = 'Kill Aura',
+    Default = false,
+    Callback = function(state)
+        getgenv().enabled = state
+        if not state then
+            getgenv().active = false
+            getgenv().tracer.Transparency = 1
+            killAuraTracer.Visible = false
+        end
+    end
+}):AddKeyPicker('Keybind', {
+    Default = 'K',
+    Text = 'kill aura',
+    Mode = 'Toggle',
+    Callback = function(state)
+        if not getgenv().enabled or UserInputService:GetFocusedTextBox() then return end
         getgenv().active = state
     end
 })
 
-combatSection:Slider({
-    Name = "Range",
+KillAura:AddSlider("Range", {
+    Text = "Range",
     Default = 250,
-    Min = 50,
-    Max = 500,
-    Decimals = 1,
+    Min = 10,
+    Max = 250,
+    Rounding = 1,
     Callback = function(value)
         getgenv().range = value
     end
 })
 
-combatSection:Toggle({
-    Name = "Hit Sound",
+KillAura:AddToggle('Visualizer', {
+    Text = 'Visualize',
+    Default = false,
+    Callback = function(state)
+        getgenv().visualizeEnabled = state
+    end
+}):AddColorPicker('VisualizerColor', {
+    Text = 'Visualizer Color',
+    Default = Color3.new(1, 0, 0),
+    Callback = function(value)
+        getgenv().tracer.Color = value
+        killAuraTracer.Color = value
+    end
+})
+
+KillAura:AddToggle('Silent', {
+    Text = 'Silent',
+    Default = false,
+    Callback = function(state)
+        getgenv().silentEnabled = state
+    end
+})
+
+KillAura:AddInput('wlb', {
+    Default = '',
+    Numeric = false,
+    Finished = false,
+    Text = 'Add/Remove Player',
+    Tooltip = 'Type a name or display name to add/remove from whitelist',
+    Placeholder = 'Player Name',
+    Callback = function(input)
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Name == input or player.DisplayName == input then
+                if getgenv().whitelist[player.Name] then
+                    getgenv().whitelist[player.Name] = nil
+                    Library:Notify(player.Name .. " removed from whitelist.", 2)
+                else
+                    getgenv().whitelist[player.Name] = true
+                    Library:Notify(player.Name .. " added to whitelist.", 2)
+                end
+                return
+            end
+        end
+        Library:Notify("Player not found.", 2)
+    end,
+    Autocomplete = function(input)
+        local suggestions = {}
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if string.find(string.lower(player.Name), string.lower(input)) or string.find(string.lower(player.DisplayName), string.lower(input)) then
+                table.insert(suggestions, player.Name .. " (" .. player.DisplayName .. ")")
+            end
+        end
+        return suggestions
+    end
+})
+
+-- Hitsounds
+GunMods:AddToggle('hstoggle', {
+    Text = 'Hitsounds',
     Default = false,
     Callback = function(state)
         getgenv().hitsoundEnabled = state
     end
 })
 
--- // Targeting Features
-targetingSection:Toggle({
-    Name = "Sticky Aim",
-    Default = false,
-    Callback = function(state)
-        StickyAimEnabled = state
-    end
-})
-
-targetingSection:Toggle({
-    Name = "View Target",
-    Default = false,
-    Callback = function(state)
-        ViewTargetEnabled = state
-    end
-})
-
--- // Visual Features
-visualsSection:Toggle({
-    Name = "Tracers",
-    Default = false,
-    Callback = function(state)
-        TracerEnabled = state
-    end
-})
-
--- // Movement Features
-movementSection:Toggle({
-    Name = "Strafe",
-    Default = false,
-    Callback = function(state)
-        strafeEnabled = state
-    end
-})
-
-movementSection:Slider({
-    Name = "Strafe Speed",
-    Default = 5,
-    Min = 1,
-    Max = 20,
-    Decimals = 1,
+GunMods:AddDropdown('hs', {
+    Text = 'Select Hitsound',
+    Values = {"Bubble", "Lazer", "Pick", "Pop", "Rust", "Sans", "Fart", "Big", "Vine", "UwU", "Bruh", "Skeet", "Neverlose", "Fatality", "Bonk", "Minecraft", "Gamesense", "RIFK7", "Bamboo", "Crowbar", "Weeb", "Beep", "Bambi", "Stone", "Old Fatality", "Click", "Ding", "Snow", "Laser", "Mario", "Steve", "Call of Duty", "Bat", "TF2 Critical", "Saber", "Baimware", "Osu", "TF2", "Slime", "Among Us", "One"},
+    Default = "Bubble",
     Callback = function(value)
-        strafeSpeed = value
+        getgenv().selectedHitsound = value
     end
 })
 
--- // Kill Aura Logic (Fixed nil comparisons)
+GunMods:AddSlider('hsvolume', {
+    Text = 'Volume',
+    Default = 1,
+    Min = 1,
+    Max = 5,
+    Rounding = 2,
+    Callback = function(value)
+        getgenv().hitsoundVolume = value
+    end
+})
+
+-- Anti Aim (Desync)
+local desync_setback = Instance.new("Part")
+desync_setback.Name = "Desync Setback"
+desync_setback.Parent = workspace
+desync_setback.Size = Vector3.new(2, 2, 1)
+desync_setback.CanCollide = false
+desync_setback.Anchored = true
+desync_setback.Transparency = 1
+
+local desync = {
+    enabled = false,
+    mode = "Void",
+    teleportPosition = Vector3.new(0, 0, 0),
+    old_position = nil,
+    voidSpamActive = false,
+    toggleEnabled = false
+}
+
+function resetCamera()
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            workspace.CurrentCamera.CameraSubject = humanoid
+        end
+    end
+end
+
+function toggleDesync(state)
+    desync.enabled = state
+    if desync.enabled then
+        workspace.CurrentCamera.CameraSubject = desync_setback
+        Library:Notify("Desync Enabled '" .. desync.mode .. "' Mad.lol $", 2)
+    else
+        resetCamera()
+        Library:Notify("Desync Disabled '" .. desync.mode .. "' Mad.lol  $", 2)
+    end
+end
+
+function setDesyncMode(mode)
+    desync.mode = mode
+end
+
+local DesyncBox = Tabs.Main:AddRightGroupbox("Anti Aim")
+
+DesyncBox:AddToggle('DesyncToggle', {
+    Text = 'Anti Aim',
+    Default = false,
+    Callback = function(state)
+        desync.toggleEnabled = state
+        if not state then
+            toggleDesync(false)
+        end
+    end,
+}):AddKeyPicker('DesyncKeybind', {
+    Default = 'V',
+    Text = 'Desync',
+    Mode = 'Toggle',
+    Callback = function(state)
+        if not desync.toggleEnabled or UserInputService:GetFocusedTextBox() then return end
+        toggleDesync(not desync.enabled)
+    end,
+})
+
+DesyncBox:AddDropdown('DesyncMethodDropdown', {
+    Values = {"Destroy Cheaters", "Underground", "Void Spam", "Void"},
+    Default = "Void",
+    Multi = false,
+    Text = 'Method',
+    Callback = function(selected)
+        setDesyncMode(selected)
+    end
+})
+
 RunService.Heartbeat:Connect(function()
+    if desync.enabled and LocalPlayer.Character then
+        local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            desync.old_position = rootPart.CFrame
+
+            if desync.mode == "Destroy Cheaters" then
+                desync.teleportPosition = Vector3.new(11223344556677889900, 1, 1)
+
+            elseif desync.mode == "Underground" then
+                desync.teleportPosition = rootPart.Position - Vector3.new(0, 12, 0)
+
+            elseif desync.mode == "Void Spam" then
+                desync.teleportPosition = math.random(1, 2) == 1 and desync.old_position.Position or Vector3.new(
+                    math.random(10000, 50000),
+                    math.random(10000, 50000),
+                    math.random(10000, 50000)
+                )
+
+            elseif desync.mode == "Void" then
+                desync.teleportPosition = Vector3.new(
+                    rootPart.Position.X + math.random(-444444, 444444),
+                    rootPart.Position.Y + math.random(-444444, 444444),
+                    rootPart.Position.Z + math.random(-44444, 44444)
+                )
+            end
+
+            if desync.mode ~= "Rotation" then
+                rootPart.CFrame = CFrame.new(desync.teleportPosition)
+                workspace.CurrentCamera.CameraSubject = desync_setback
+
+                RunService.RenderStepped:Wait()
+
+                desync_setback.CFrame = desync.old_position * CFrame.new(0, rootPart.Size.Y / 2 + 0.5, 0)
+                rootPart.CFrame = desync.old_position
+            end
+        end
+    end
+end)
+
+-- UI Settings Tab
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' }) 
+
+Library.ToggleKeybind = Options.MenuKeybind
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings() 
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' }) 
+
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
+
+SaveManager:BuildConfigSection(Tabs['UI Settings']) 
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+
+-- Main render loop
+RunService.RenderStepped:Connect(function()
+    if lockedTarget and lockedTarget.Character then
+        local targetPart = lockedTarget.Character:FindFirstChild(targetHitPart)
+        local bodyEffects = lockedTarget.Character:FindFirstChild("BodyEffects")
+        local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
+        local isGrabbed = lockedTarget.Character:FindFirstChild("GRABBING_CONSTRAINT")
+
+        if ViewTargetEnabled then
+            workspace.CurrentCamera.CameraSubject = lockedTarget.Character
+        elseif spectateStrafeEnabled and strafeEnabled then
+            workspace.CurrentCamera.CameraSubject = lockedTarget.Character:FindFirstChild("Head")
+        end
+
+        if strafeEnabled and targetPart and not isGrabbed then
+            local targetRoot = lockedTarget.Character:FindFirstChild("HumanoidRootPart")
+            local targetPosition = targetRoot.Position
+
+            if predictMovementEnabled then
+                targetPosition = predictPosition(targetRoot, PredicTvalue)
+            end
+
+            if strafeMode == "Orbit" then
+                local angle = tick() * strafeSpeed
+                local offset = Vector3.new(math.cos(angle) * strafeXOffset, -0.1, math.sin(angle) * strafeXOffset)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition + offset, targetPosition)
+            elseif strafeMode == "Random" then
+                local offset = Vector3.new(math.random(-20, 20), math.random(-10, 10), math.random(-20, 20))
+                local randomrotation = CFrame.Angles(
+                    math.rad(math.random(0, 360)),
+                    math.rad(math.random(0, 360)),
+                    math.rad(math.random(0, 360))
+                )
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition + offset) * randomrotation
+            end
+        end
+
+        local humanoid = lockedTarget.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            if not getgenv().lastHealth[lockedTarget.Name] then
+                getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
+            end
+            if humanoid.Health < getgenv().lastHealth[lockedTarget.Name] then
+                playHitsound()
+            end
+            getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
+        end
+
+        if TracerEnabled and targetPart then
+            tracer.Visible = true
+            local camera = workspace.CurrentCamera
+            local targetScreenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+            local endScreenPos
+
+            if targetToMouseTracer then
+                endScreenPos = UserInputService:GetMouseLocation()
+            else
+                local rootPart = LocalPlayer.Character and LocalPlayer
+                                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local rootScreenPos = camera:WorldToViewportPoint(rootPart.Position)
+                    endScreenPos = Vector2.new(rootScreenPos.X, rootScreenPos.Y)
+                else
+                    endScreenPos = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+                end
+            end
+
+            if onScreen then
+                tracer.From = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+                tracer.To = endScreenPos
+            else
+                tracer.Visible = false
+            end
+        else
+            tracer.Visible = false
+        end
+
+        if StickyAimEnabled then
+            local camera = workspace.CurrentCamera
+            local targetPos = targetPart.Position
+            if predictMovementEnabled then
+                targetPos = predictPosition(lockedTarget.Character:FindFirstChild("HumanoidRootPart"), PredicTvalue)
+            end
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
+        end
+
+        if stompTargetEnabled and targetPart then
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPart.Position + Vector3.new(0, 5, 0))
+            end
+        end
+    else
+        tracer.Visible = false
+    end
+
     -- Kill Aura Logic
     if getgenv().enabled and getgenv().active and LocalPlayer.Character then
         local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            local rangeValue = tonumber(getgenv().range)
-            local closestPlayer, closestDistance = nil, (rangeValue and rangeValue > 0) and rangeValue or math.huge
+            local closestPlayer, closestDistance = nil, getgenv().range
 
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character and not getgenv().whitelist[player.Name] then
@@ -1021,40 +1017,144 @@ RunService.Heartbeat:Connect(function()
                 end
             end
 
-            if closestPlayer then
-                lockedTarget = closestPlayer
+            if closestPlayer and closestPlayer.Character then
+                local targetRoot = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
+                    if getgenv().visualizeEnabled then
+                        getgenv().tracer.Transparency = 0.5
+                        getgenv().tracer.CFrame = CFrame.new(targetRoot.Position)
+                        killAuraTracer.Visible = true
+                        killAuraTracer.From = Vector2.new(rootPart.Position.X, rootPart.Position.Y)
+                        killAuraTracer.To = Vector2.new(targetRoot.Position.X, targetRoot.Position.Y)
+                    else
+                        getgenv().tracer.Transparency = 1
+                        killAuraTracer.Visible = false
+                    end
+
+                    if not getgenv().silentEnabled then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 3, 0))
+                    end
+
+                    -- Simulate punch
+                    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                    end
+                end
+            else
+                getgenv().tracer.Transparency = 1
+                killAuraTracer.Visible = false
             end
         end
     end
 
-    -- Health monitoring (Fixed nil comparisons)
-    if lockedTarget and lockedTarget.Character then
-        local humanoid = lockedTarget.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            if not getgenv().lastHealth[lockedTarget.Name] then
-                getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
+    -- Auto Ammo Logic
+    if AutoAmmoEnabled and LocalPlayer.Character then
+        local backpack = LocalPlayer:FindFirstChild("Backpack")
+        local character = LocalPlayer.Character
+        local hasLowAmmo = false
+
+        -- Check for low ammo
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:FindFirstChild("Ammo") and tool.Ammo.Value < 5 then
+                hasLowAmmo = true
+                break
             end
-            local lastHealth = getgenv().lastHealth[lockedTarget.Name]
-            if lastHealth and humanoid.Health < lastHealth then
-                playHitsound()
+        end
+
+        if hasLowAmmo then
+            -- Save strafe state if needed
+            if strafeEnabled then
+                strafeWasEnabledBeforeAmmoBuy = true
+                strafeEnabled = false
             end
-            getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
+
+            -- Teleport to ammo store (replace with actual coordinates)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(100, 5, 100) -- Example coordinates
+
+            -- Simulate buying ammo
+            wait(1)
+            fireclickdetector(game:GetService("Workspace").AmmoStore.ClickDetector)
+
+            -- Restore strafe state
+            if strafeWasEnabledBeforeAmmoBuy then
+                strafeEnabled = true
+                strafeWasEnabledBeforeAmmoBuy = false
+            end
+        end
+    end
+
+    -- Kill Say Logic
+    if killSayEnabled then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local humanoid = player.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    if not getgenv().lastHealth[player.Name] then
+                        getgenv().lastHealth[player.Name] = humanoid.Health
+                    end
+                    
+                    if humanoid.Health <= 0 and getgenv().lastHealth[player.Name] > 0 then
+                        local message = killSayMessages[math.random(1, #killSayMessages)]
+                        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+                    end
+                    
+                    getgenv().lastHealth[player.Name] = humanoid.Health
+                end
+            end
         end
     end
 end)
 
--- // Activate first page
-mainPage:Turn(true)
-
--- // Cleanup function
-local function cleanup()
-    for _, connection in pairs(obelus.connections) do
-        if connection then
-            connection:Disconnect()
+-- Hidden Bullets Logic
+local originalBulletTransparency
+if hiddenBulletsEnabled then
+    for _, v in next, getgc(true) do
+        if type(v) == "table" and rawget(v, "shoot") then
+            originalBulletTransparency = v.bullet
+            v.bullet = function(...)
+                local args = {...}
+                args[2] = nil -- Remove bullet visual
+                return originalBulletTransparency(unpack(args))
+            end
         end
     end
-    obelus.connections = {}
+elseif originalBulletTransparency then
+    for _, v in next, getgc(true) do
+        if type(v) == "table" and rawget(v, "shoot") then
+            v.bullet = originalBulletTransparency
+        end
+    end
 end
 
--- // Return library for external use
-return library, utility, obelus
+-- Cleanup on script unload
+Library.OnUnload = function()
+    if tracer then tracer:Remove() end
+    if killAuraTracer then killAuraTracer:Remove() end
+    if desync_setback then desync_setback:Destroy() end
+    if getgenv().tracer then getgenv().tracer:Destroy() end
+    
+    -- Reset hitbox expander
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character then
+            resetCharacter(Player.Character)
+        end
+    end
+    
+    -- Reset hidden bullets
+    if originalBulletTransparency then
+        for _, v in next, getgc(true) do
+            if type(v) == "table" and rawget(v, "shoot") then
+                v.bullet = originalBulletTransparency
+            end
+        end
+    end
+    
+    -- Reset camera
+    if LocalPlayer.Character then
+        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+    end
+end
+
+-- Notify loaded
+Library:Notify("Loaded Mad.lol | Beta", 5)
