@@ -1,22 +1,9 @@
-
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 local Window = Library:CreateWindow({ Title = '                     $ Mad.lol | Beta $                     ', AutoShow = true, TabPadding = 15, MenuFadeTime = 0.2 })
-
--- Only two tabs now: Rage and UI Settings
-local Tabs = {
-    Rage = Window:AddTab('Rage'),
-    ['UI Settings'] = Window:AddTab('UI Settings'),
-}
-
--- Rage groupbox inside Rage tab
-local RageGroupBox = Tabs.Rage:AddLeftGroupbox('Rage Settings')
-local HitboxExpanderGroup = Tabs.Rage:AddRightGroupbox('Hitbox Expander') -- Defined HitboxExpanderGroup
-local CameraGroup = Tabs.Rage:AddRightGroupbox('Camera Settings') -- Defined CameraGroup
-
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+local Tabs = { Main = Window:AddTab('Main'), ['UI Settings'] = Window:AddTab('UI Settings') }
 
 local LocalPlayer = game:GetService('Players').LocalPlayer
 local Players = game:GetService('Players')
@@ -24,10 +11,15 @@ local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- Rage feature variables
+-- Main Tab
+local GunMods = Tabs.Main:AddRightGroupbox('Gun Mods')
+local KillAura = Tabs.Main:AddRightGroupbox('Combat')
+local TargetingGroup = Tabs.Main:AddLeftGroupbox('Targeting')
+local Target = Tabs.Main:AddLeftGroupbox('Target')
+
+-- Variables
 local lockedTarget = nil
 local StickyAimEnabled = false
-local HighlightEnabled = false
 local TracerEnabled = false
 local ViewTargetEnabled = false
 local targetHitPart = "Head"
@@ -40,8 +32,8 @@ local strafeMode = "Orbit"
 local strafeSpeed = 5
 local strafeXOffset = 5
 local predictMovementEnabled = false
-local stompTargetEnabled = false -- Single declaration
-local lastPosition = nil -- Single declaration
+local stompTargetEnabled = false
+local lastPosition = nil
 local oldPosition = nil
 local Core = nil
 local BodyVelocity = nil
@@ -51,13 +43,12 @@ local spectateStrafeEnabled = false
 local AutoAmmoEnabled = false
 local strafeWasEnabledBeforeAmmoBuy = false
 
-local tracer = Drawing.new("Line") -- Consolidated tracer declaration
+local tracer = Drawing.new("Line")
 tracer.Visible = false
 tracer.Thickness = 1
 tracer.Color = Color3.fromRGB(255, 255, 255)
 
--- Prediction function
-local function predictPosition(targetRoot, predictionMultiplier)
+function predictPosition(targetRoot, predictionMultiplier)
     if not targetRoot then return targetRoot.Position end
     if targetRoot.Velocity.Magnitude > 700 then
         return targetRoot.Position
@@ -65,12 +56,10 @@ local function predictPosition(targetRoot, predictionMultiplier)
     return targetRoot.Position + (targetRoot.Velocity * predictionMultiplier)
 end
 
--- Rage Tab UI Elements
-
-RageGroupBox:AddToggle("StickyAim", {
+-- Sticky Aim
+TargetingGroup:AddToggle("StickyAim", {
     Text = "Sticky Aim",
     Default = false,
-    Tooltip = "Toggle sticky aim on/off",
     Callback = function(Value)
         StickyAimEnabled = Value
         if not Value then
@@ -82,7 +71,7 @@ RageGroupBox:AddToggle("StickyAim", {
 }):AddKeyPicker("StickyAimKeybind", {
     Default = "C",
     NoUI = false,
-    Text = "Sticky Aim Keybind",
+    Text = "Sticky Aim",
     Mode = "Toggle",
     Callback = function()
         if UserInputService:GetFocusedTextBox() then return end
@@ -124,77 +113,25 @@ RageGroupBox:AddToggle("StickyAim", {
     end
 })
 
-RageGroupBox:AddToggle("Highlight", {
-    Text = "Highlight Target",
+-- Spectate
+local maddieplsnomad = false
+TargetingGroup:AddToggle("ViewTarget", {
+    Text = "spectate",
     Default = false,
-    Tooltip = "Toggle target highlight",
     Callback = function(Value)
-        HighlightEnabled = Value
-    end
-})
-
-RageGroupBox:AddToggle("Tracer", {
-    Text = "Tracer",
-    Default = false,
-    Tooltip = "Toggle tracer line to target",
-    Callback = function(Value)
-        TracerEnabled = Value
-    end
-})
-
-RageGroupBox:AddToggle("TargetToMouseTracer", {
-    Text = "Target to Mouse Tracer",
-    Default = true,
-    Tooltip = "Tracer goes from target to mouse, otherwise from target to player",
-    Callback = function(Value)
-        targetToMouseTracer = Value
-    end
-})
-
-RageGroupBox:AddToggle("GrabCheck", {
-    Text = "Ignore Grabbed Targets",
-    Default = true,
-    Tooltip = "Don't target players who are grabbed",
-    Callback = function(Value)
-        grabCheckEnabled = Value
-    end
-})
-
-RageGroupBox:AddToggle("KOCheck", {
-    Text = "Ignore KO'd Targets",
-    Default = true,
-    Tooltip = "Don't target players who are knocked out",
-    Callback = function(Value)
-        koCheckEnabled = Value
-    end
-})
-
-RageGroupBox:AddToggle("FriendCheck", {
-    Text = "Ignore Friends",
-    Default = false,
-    Tooltip = "Don't target friends",
-    Callback = function(Value)
-        friendCheckEnabled = Value
-    end
-})
-
-RageGroupBox:AddToggle("ViewTarget", {
-    Text = "Spectate Target",
-    Default = false,
-    Tooltip = "Toggle spectate on/off",
-    Callback = function(Value)
-        ViewTargetEnabled = Value
+        maddieplsnomad = Value
         if not Value then
+            ViewTargetEnabled = false
             workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
         end
     end
 }):AddKeyPicker("ViewTargetKeybind", {
     Default = "B",
     NoUI = false,
-    Text = "Spectate Keybind",
+    Text = "spectate",
     Mode = "Toggle",
     Callback = function()
-        if not ViewTargetEnabled or UserInputService:GetFocusedTextBox() then return end
+        if not maddieplsnomad or UserInputService:GetFocusedTextBox() then return end
         ViewTargetEnabled = not ViewTargetEnabled
         if ViewTargetEnabled and lockedTarget then
             workspace.CurrentCamera.CameraSubject = lockedTarget.Character
@@ -204,25 +141,31 @@ RageGroupBox:AddToggle("ViewTarget", {
     end
 })
 
-RageGroupBox:AddDropdown("HitPart", {
+-- Hit Part Selection
+TargetingGroup:AddDropdown("hp", {
     Text = "Hit Part",
     Values = {"Head", "HumanoidRootPart", "UpperTorso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"},
     Default = "Head",
-    Tooltip = "Select target hit part",
     Callback = function(Value)
         targetHitPart = Value
     end
 })
 
-RageGroupBox:AddToggle("StrafeToggle", {
+-- Target Strafe
+Target:AddToggle("StrafeToggle", {
     Text = "Target Strafe",
     Default = false,
-    Tooltip = "Enable or disable target strafing",
     Callback = function(Value)
         strafeEnabled = Value
         if not Value then
-            if Core then Core:Destroy() Core = nil end
-            if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
+            if Core then
+                Core:Destroy()
+                Core = nil
+            end
+            if BodyVelocity then
+                BodyVelocity:Destroy()
+                BodyVelocity = nil
+            end
             if oldPosition then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = oldPosition
                 oldPosition = nil
@@ -233,14 +176,20 @@ RageGroupBox:AddToggle("StrafeToggle", {
 }):AddKeyPicker("StrafeKeybind", {
     Default = "N",
     NoUI = false,
-    Text = "Strafe Keybind",
+    Text = "Strafe",
     Mode = "Toggle",
     Callback = function()
         if UserInputService:GetFocusedTextBox() then return end
         strafeEnabled = not strafeEnabled
         if not strafeEnabled then
-            if Core then Core:Destroy() Core = nil end
-            if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
+            if Core then
+                Core:Destroy()
+                Core = nil
+            end
+            if BodyVelocity then
+                BodyVelocity:Destroy()
+                BodyVelocity = nil
+            end
             if oldPosition then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = oldPosition
                 oldPosition = nil
@@ -250,10 +199,10 @@ RageGroupBox:AddToggle("StrafeToggle", {
     end
 })
 
-RageGroupBox:AddToggle("SpectateStrafe", {
+-- Spectate Strafe
+Target:AddToggle("SpectateStrafe", {
     Text = "Spectate Strafe",
     Default = false,
-    Tooltip = "Spectate while strafing",
     Callback = function(Value)
         spectateStrafeEnabled = Value
         if not Value then
@@ -262,229 +211,93 @@ RageGroupBox:AddToggle("SpectateStrafe", {
     end
 })
 
-RageGroupBox:AddDropdown("StrafeMode", {
+-- Strafe Mode
+Target:AddDropdown("StrafeMode", {
     Text = "Strafe Mode",
     Values = {"Orbit", "Random"},
     Default = "Orbit",
-    Tooltip = "Choose strafe mode",
     Callback = function(Value)
         strafeMode = Value
     end
 })
 
-RageGroupBox:AddSlider("StrafeSpeed", {
-    Text = "Strafe Speed",
+-- Strafe Speed
+Target:AddSlider("StrafeSpeed", {
+    Text = "Speed units",
     Default = 5,
     Min = 1,
     Max = 20,
     Rounding = 1,
-    Tooltip = "Set strafing speed",
     Callback = function(Value)
         strafeSpeed = Value
     end
 })
 
-RageGroupBox:AddSlider("StrafeXOffset", {
-    Text = "Strafe Z Offset",
+-- Strafe Offset
+Target:AddSlider("StrafeXOffset", {
+    Text = "z offset",
     Default = 5,
     Min = 1,
     Max = 20,
     Rounding = 1,
-    Tooltip = "Set strafing offset",
     Callback = function(Value)
         strafeXOffset = Value
     end
 })
 
-RageGroupBox:AddToggle("PredictMovement", {
-    Text = "Predict Movement",
+-- Movement Prediction
+Target:AddToggle("PredictMovement", {
+    Text = "predict movement",
     Default = false,
-    Tooltip = "Toggle movement prediction",
     Callback = function(Value)
         predictMovementEnabled = Value
     end
 })
 
-RageGroupBox:AddSlider("StrafePredictionDistance", {
-    Text = "Prediction Distance",
+-- Prediction Distance
+Target:AddSlider("StrafePredictionDistance", {
+    Text = "movement prediction",
     Default = 0.3,
     Min = 0.1,
     Max = 10,
     Rounding = 1,
-    Tooltip = "Set movement prediction distance",
     Callback = function(Value)
         PredicTvalue = Value
     end
 })
 
-RageGroupBox:AddToggle("StompTarget", {
+-- Stomp Target
+TargetingGroup:AddToggle("StompTarget", {
     Text = "Stomp Target",
     Default = false,
-    Tooltip = "Toggle stomping the target",
     Callback = function(Value)
         stompTargetEnabled = Value
     end
 })
 
-RageGroupBox:AddToggle("HiddenBullets", {
-    Text = "Invisible Bullets",
+-- Hidden Bullets
+TargetingGroup:AddToggle("HiddenBullets", {
+    Text = "invisible bullets",
     Default = false,
-    Tooltip = "Toggle invisible bullets",
     Callback = function(Value)
         hiddenBulletsEnabled = Value
     end
 })
 
-RageGroupBox:AddToggle("AutoAmmo", {
+-- Auto Ammo
+TargetingGroup:AddToggle("AutoAmmo", {
     Text = "Auto Ammo",
     Default = false,
-    Tooltip = "Automatically buy ammo",
     Callback = function(Value)
         AutoAmmoEnabled = Value
     end
 })
 
--- Ammo buying functions
-
-local function getCurrentGun()
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool then
-        return tool.Name
-    end
-    return nil
-end
-
-local function getAmmoCount(gunName)
-    local inventory = LocalPlayer.DataFolder.Inventory
-    local ammo = inventory:FindFirstChild(gunName)
-    if ammo then
-        return tonumber(ammo.Value) or 0
-    end
-    return 0
-end
-
-local function buyAmmo(gunName)
-    local ShopFolder = workspace:WaitForChild("Ignored"):WaitForChild("Shop")
-    local AmmoMap = {
-        ["[Revolver]"] = "12 [Revolver Ammo] - $55",
-        ["[AUG]"] = "90 [AUG Ammo] - $87",
-        ["[LMG]"] = "200 [LMG Ammo] - $328",
-        ["[Rifle]"] = "5 [Rifle Ammo] - $273",
-    }
-
-    local ammoItemName = AmmoMap[gunName]
-    if not ammoItemName then return end
-
-    for _, item in pairs(ShopFolder:GetChildren()) do
-        if item.Name == ammoItemName then
-            local args = {
-                [1] = LocalPlayer,
-                [2] = item
-            }
-            game:GetService("ReplicatedStorage").Remotes.ShopBuy:InvokeServer(unpack(args))
-            break
-        end
-    end
-end
-
--- Main update loop
-
-RunService.RenderStepped:Connect(function()
-    if StickyAimEnabled and lockedTarget and lockedTarget.Character and lockedTarget.Character:FindFirstChild(targetHitPart) then
-        local targetPart = lockedTarget.Character[targetHitPart]
-        if targetPart then
-            local camera = workspace.CurrentCamera
-            local predictedPosition = targetPart.Position
-            if predictMovementEnabled then
-                predictedPosition = predictPosition(targetPart, PredicTvalue)
-            end
-            local mouse = UserInputService:GetMouseLocation()
-            local screenPos, onScreen = camera:WorldToViewportPoint(predictedPosition)
-            if onScreen then
-                local mouseDelta = Vector2.new(screenPos.X, screenPos.Y) - mouse
-                mousemoverel(mouseDelta.X, mouseDelta.Y)
-            end
-        end
-    end
-
-    if strafeEnabled and lockedTarget and lockedTarget.Character and lockedTarget.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        local targetHRP = lockedTarget.Character.HumanoidRootPart
-        if not Core then
-            Core = Instance.new("Part")
-            Core.Transparency = 1
-            Core.Anchored = true
-            Core.CanCollide = false
-            Core.Size = Vector3.new(1,1,1)
-            Core.CFrame = hrp.CFrame
-            Core.Parent = workspace
-        end
-
-        if not BodyVelocity then
-            BodyVelocity = Instance.new("BodyVelocity")
-            BodyVelocity.MaxForce = Vector3.new(1e9, 0, 1e9)
-            BodyVelocity.Parent = hrp
-        end
-
-        local angle = tick() * strafeSpeed
-        local offset = Vector3.new(strafeXOffset * math.cos(angle), 0, strafeXOffset * math.sin(angle))
-        if strafeMode == "Orbit" then
-            Core.CFrame = targetHRP.CFrame * CFrame.new(offset)
-        elseif strafeMode == "Random" then
-            Core.CFrame = targetHRP.CFrame * CFrame.new(Vector3.new(math.random(-strafeXOffset, strafeXOffset), 0, math.random(-strafeXOffset, strafeXOffset)))
-        end
-        hrp.CFrame = Core.CFrame * CFrame.new(0, 0, 1)
-    else
-        if Core then
-            Core:Destroy()
-            Core = nil
-        end
-        if BodyVelocity then
-            BodyVelocity:Destroy()
-            BodyVelocity = nil
-        end
-    end
-
-    if stompTargetEnabled and lockedTarget and lockedTarget.Character and lockedTarget.Character:FindFirstChild("HumanoidRootPart") then
-        local targetHRP = lockedTarget.Character.HumanoidRootPart
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        if (hrp.Position - targetHRP.Position).Magnitude > 20 then
-            hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 5, 0)
-        end
-    end
-
-    if hiddenBulletsEnabled then
-        for _, bullet in pairs(workspace:GetChildren()) do
-            if bullet.Name == "Bullet" and bullet:IsA("BasePart") then
-                bullet.Transparency = 1
-                bullet.CanCollide = false
-            end
-        end
-    end
-
-    -- Auto Ammo Buying Logic
-    if AutoAmmoEnabled then
-        local currentGun = getCurrentGun()
-        if currentGun then
-            local ammoCount = getAmmoCount(currentGun)
-            if ammoCount < 15 then
-                buyAmmo(currentGun)
-            end
-        end
-    end
-
-    -- Spectate strafing
-    if spectateStrafeEnabled and lockedTarget then
-        workspace.CurrentCamera.CameraSubject = lockedTarget.Character
-    elseif not spectateStrafeEnabled and workspace.CurrentCamera.CameraSubject ~= LocalPlayer.Character:FindFirstChild("Humanoid") then
-        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
-    end
-end)
-
+-- Kill Say
 local killSayEnabled = false
 local killSayMessages = {
-    "mad.lol is a free script and u die to it..",
-    "Must be hard without mad.lol 💔",
+    "mad.lol is a free script and u die to it..", 
+    "Must be hard without mad.lol 💔", 
     "Why aim when mad.lol does it for you?",
     "Bros not on mad.lol already 😂",
     "Cant be me icl",
@@ -494,196 +307,19 @@ local killSayMessages = {
     "how to win a hvh? step 1 get mad . lol"
 }
 
-local RapidFireEnabled = false
-local hyperFireEnabled = false
-local modifiedTools = {}
-
-local size = 10
-local hitboxColor = Color3.new(0, 1, 1)
-local visualizeHitbox = false
-local hitboxExpanderEnabled = false
-
-local camLockEnabled = false
-local camLockTarget = nil
-local smoothness = 0.5
-
--- Utilities
-local function predictPosition(rootPart, predictValue)
-    local velocity = rootPart.Velocity
-    return rootPart.Position + velocity * predictValue
-end
-
-local function playHitsound()
-    -- Implement your hitsound function here if needed
-end
-
--- Core loop for aiming, strafing, tracers, shooting
-RunService.RenderStepped:Connect(function()
-    if lockedTarget and lockedTarget.Character then
-        local targetPart = lockedTarget.Character:FindFirstChild(targetHitPart)
-        local bodyEffects = lockedTarget.Character:FindFirstChild("BodyEffects")
-        local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
-        local isGrabbed = lockedTarget.Character:FindFirstChild("GRABBING_CONSTRAINT")
-
-        -- Camera control
-        if ViewTargetEnabled then
-            workspace.CurrentCamera.CameraSubject = lockedTarget.Character
-        elseif spectateStrafeEnabled and strafeEnabled then
-            workspace.CurrentCamera.CameraSubject = lockedTarget.Character:FindFirstChild("Head")
-        end
-
-        -- Strafing
-        if strafeEnabled and targetPart and not isGrabbed then
-            local targetRoot = lockedTarget.Character:FindFirstChild("HumanoidRootPart")
-            local targetPosition = targetRoot.Position
-
-            if predictMovementEnabled then
-                targetPosition = predictPosition(targetRoot, PredicTvalue)
-            end
-
-            if strafeMode == "Orbit" then
-                local angle = tick() * strafeSpeed
-                local offset = Vector3.new(math.cos(angle) * strafeXOffset, -0.1, math.sin(angle) * strafeXOffset)
-                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition + offset, targetPosition)
-            elseif strafeMode == "Random" then
-                local offset = Vector3.new(math.random(-20, 20), math.random(-10, 10), math.random(-20, 20))
-                local randomrotation = CFrame.Angles(
-                    math.rad(math.random(0, 360)),
-                    math.rad(math.random(0, 360)),
-                    math.rad(math.random(0, 360))
-                )
-                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition + offset) * randomrotation
-            end
-        end
-
-        -- Play hitsound if health drops
-        local humanoid = lockedTarget.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            if not getgenv().lastHealth then getgenv().lastHealth = {} end
-            if not getgenv().lastHealth[lockedTarget.Name] then
-                getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
-            end
-            if humanoid.Health < getgenv().lastHealth[lockedTarget.Name] then
-                playHitsound()
-            end
-            getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
-        end
-
-        -- Tracer drawing
-        if TracerEnabled and targetPart then
-            tracer.Visible = true
-            local camera = workspace.CurrentCamera
-            local targetScreenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
-            local endScreenPos
-
-            if targetToMouseTracer then
-                endScreenPos = UserInputService:GetMouseLocation()
-            else
-                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if rootPart then
-                    local rootScreenPos, rootOnScreen = camera:WorldToViewportPoint(rootPart.Position)
-                    if rootOnScreen then
-                        endScreenPos = Vector2.new(rootScreenPos.X, rootScreenPos.Y)
-                    end
-                end
-            end
-
-            if onScreen and endScreenPos then
-                tracer.From = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
-                tracer.To = endScreenPos
-            else
-                tracer.Visible = false
-            end
-        else
-            tracer.Visible = false
-        end
-
-        -- Shooting logic
-        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        local handle = tool and tool:FindFirstChild("Handle")
-        if tool and handle and targetPart and not isKO and not isGrabbed then
-            if hiddenBulletsEnabled then
-                ReplicatedStorage.MainEvent:FireServer(
-                    "ShootGun",
-                    handle,
-                    handle.CFrame.Position - Vector3.new(0, 10, 0),
-                    targetPart.Position - Vector3.new(0, 10, 0),
-                    targetPart,
-                    Vector3.new(0, 0, -1))
-            else
-                ReplicatedStorage.MainEvent:FireServer(
-                    "ShootGun",
-                    handle,
-                    handle.CFrame.Position,
-                    targetPart.Position,
-                    targetPart,
-                    Vector3.new(0, 0, -1))
-            end
-        end
-    else
-        tracer.Visible = false
-    end
-end)
-
--- Kill Say toggle
-RageGroupBox:AddToggle("killsay", {
-    Text = "Kill Say",
+TargetingGroup:AddToggle("killsay", { 
+    Text = "Kill Say", 
     Default = false,
     Callback = function(Value)
         killSayEnabled = Value
     end
-
 })
 
--- Stomp + KillSay automation
-task.spawn(function()
-    while true do
-        if stompTargetEnabled and lockedTarget and lockedTarget ~= LocalPlayer then
-            local character = lockedTarget.Character
-            if character then
-                local bodyEffects = character:FindFirstChild("BodyEffects")
-                local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
-                local isSDeath = bodyEffects and bodyEffects:FindFirstChild("SDeath") and bodyEffects["SDeath"].Value
+-- Rapid Fire
+local RapidFireEnabled = false
+local hyperFireEnabled = false
+local modifiedTools = {}
 
-                if isKO and not isSDeath then
-                    local upperTorso = character:FindFirstChild("UpperTorso")
-                    if upperTorso then
-                        local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-                        if not lastPosition then
-                            lastPosition = humanoidRootPart.Position
-                        end
-                        humanoidRootPart.CFrame = CFrame.new(upperTorso.Position + Vector3.new(0, 3, 0))
-                        RunService.RenderStepped:Wait()
-                    end
-                elseif isSDeath and lastPosition then
-                    if killSayEnabled then
-                        local message = killSayMessages[math.random(1, #killSayMessages)]
-                        game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
-                    end
-                    local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-                    while (humanoidRootPart.Position - lastPosition).Magnitude > 5 do
-                        humanoidRootPart.CFrame = CFrame.new(lastPosition)
-                        task.wait()
-                    end
-                    lastPosition = nil
-                end
-            else
-                if lastPosition then
-                    local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-                    while (humanoidRootPart.Position - lastPosition).Magnitude > 5 do
-                        humanoidRootPart.CFrame = CFrame.new(lastPosition)
-                        task.wait()
-                    end
-                    lastPosition = nil
-                end
-            end
-            ReplicatedStorage.MainEvent:FireServer("Stomp")
-        end
-        task.wait(0)
-    end
-end)
-
--- Rapid Fire implementation
 local function rapidfire(tool)
     if not tool or not tool:FindFirstChild("GunScript") or modifiedTools[tool] then return end
 
@@ -720,7 +356,7 @@ end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
-RageGroupBox:AddToggle("RapidFireToggle", {
+GunMods:AddToggle("RapidFireToggle", {
     Text = "Rapid Fire",
     Default = false,
     Callback = function(Value)
@@ -734,15 +370,16 @@ RageGroupBox:AddToggle("RapidFireToggle", {
     end
 })
 
+-- Hyper Fire
 local function updateHyperFire()
     for _, obj in ipairs(game:GetDescendants()) do
         if obj.Name == "ToleranceCooldown" and obj:IsA("ValueBase") then
-            obj.Value = 0
+            obj.Value = 0 
         end
     end
 end
 
-RageGroupBox:AddToggle("HyperFireToggle", {
+GunMods:AddToggle("HyperFireToggle", {
     Text = "Rapid Fire v2",
     Default = false,
     Callback = function(Value)
@@ -757,20 +394,74 @@ game.DescendantAdded:Connect(function(obj)
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if hyperFireEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        local character = LocalPlayer.Character
-        if character then
-            local tool = character:FindFirstChildOfClass("Tool")
-            if tool and tool:FindFirstChild("Ammo") then
-                tool:Activate()
+-- Hitbox Expander
+local HBE = Tabs.Main:AddRightGroupbox('HBE')
+local size = 10
+local hitboxColor = Color3.new(0, 1, 1)
+local visualizeHitbox = false
+local hitboxExpanderEnabled = false
+
+HBE:AddToggle('HitboxExpanderToggle', {
+    Text = 'Hitbox Expander',
+    Default = false,
+    Callback = function(state)
+        hitboxExpanderEnabled = state
+        if not state then
+            for _, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer and Player.Character then
+                    resetCharacter(Player.Character)
+                end
+            end
+        end
+    end,
+}):AddKeyPicker("FlightKeybindPicker", {
+    Default = "L",
+    Text = "Hitbox",
+    Mode = "Toggle",
+    Callback = function(state)
+        if UserInputService:GetFocusedTextBox() then return end
+        hitboxExpanderEnabled = state
+        if not state then
+            for _, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer and Player.Character then
+                    resetCharacter(Player.Character)
+                end
             end
         end
     end
-end)
+})
 
--- Hitbox Expander Group
-local Client = LocalPlayer
+HBE:AddSlider('HitboxSizeSlider', {
+    Text = 'Hitbox Size',
+    Default = 10,
+    Min = 10,
+    Max = 50,
+    Rounding = 0,
+    Callback = function(value)
+        size = value
+    end,
+})
+
+HBE:AddToggle('VisualizerToggle', {
+    Text = 'Visualize',
+    Default = false,
+    Callback = function(state)
+        visualizeHitbox = state
+        if not state then
+            for _, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer and Player.Character then
+                    removeVisuals(Player.Character)
+                end
+            end
+        end
+    end,
+}):AddColorPicker('HitboxColorPicker', {
+    Text = 'Hitbox Color',
+    Default = Color3.new(0, 1, 1),
+    Callback = function(color)
+        hitboxColor = color
+    end,
+})
 
 local function removeVisuals(Character)
     if not Character then return end
@@ -842,151 +533,352 @@ local function handleCharacter(Character)
     end
 end
 
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(char)
-        task.wait(1)
-        if hitboxExpanderEnabled then
-            handleCharacter(char)
-        end
+local function handlePlayer(Player)
+    if Player == LocalPlayer then return end
+    Player.CharacterAdded:Connect(function(Character)
+        Character:WaitForChild("HumanoidRootPart")
+        handleCharacter(Character)
     end)
-end)
+    if Player.Character then
+        handleCharacter(Player.Character)
+    end
+end
 
-Players.PlayerRemoving:Connect(function(player)
-    -- Clean up if needed
-end)
+for _, Player in pairs(Players:GetPlayers()) do
+    handlePlayer(Player)
+end
 
-Client.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    if hitboxExpanderEnabled then
-        handleCharacter(char)
+Players.PlayerAdded:Connect(handlePlayer)
+
+RunService.Heartbeat:Connect(function()
+    if not hitboxExpanderEnabled then
+        for _, Player in pairs(Players:GetPlayers()) do
+            if Player ~= LocalPlayer and Player.Character then
+                resetCharacter(Player.Character)
+            end
+        end
+        return
+    end
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character then
+            handleCharacter(Player.Character)
+        end
     end
 end)
 
--- UI Toggles and Sliders for Hitbox Expander
-HitboxExpanderGroup:AddToggle("HitboxExpandToggle", {
-    Text = "Hitbox Expander",
+-- Kill Aura
+getgenv().range = 250
+getgenv().whitelist = {}
+getgenv().tracer = Instance.new("Part")
+getgenv().tracer.Size = Vector3.new(0.2, 0.2, 0.2)
+getgenv().tracer.Material = Enum.Material.Neon
+getgenv().tracer.Color = Color3.new(1, 0, 0)
+getgenv().tracer.Transparency = 1
+getgenv().tracer.Anchored = true
+getgenv().tracer.CanCollide = false
+getgenv().tracer.Parent = workspace
+
+getgenv().enabled = false
+getgenv().active = false
+getgenv().visualizeEnabled = false
+getgenv().silentEnabled = false
+getgenv().lastHealth = {}
+
+KillAura:AddToggle('MainToggle', {
+    Text = 'Kill Aura',
     Default = false,
+    Callback = function(state)
+        getgenv().enabled = state
+        if not state then
+            getgenv().active = false
+            getgenv().tracer.Transparency = 1
+        end
+    end
+}):AddKeyPicker('Keybind', {
+    Default = 'K',
+    Text = 'kill aura',
+    Mode = 'Toggle',
+    Callback = function(state)
+        if not getgenv().enabled or UserInputService:GetFocusedTextBox() then return end
+        getgenv().active = state
+    end
+})
+
+KillAura:AddSlider("Range", {
+    Text = "Range",
+    Default = 250,
+    Min = 10,
+    Max = 250,
+    Rounding = 1,
     Callback = function(value)
-        hitboxExpanderEnabled = value
-        if not value then
-            for _, player in pairs(Players:GetPlayers()) do
-                resetCharacter(player.Character)
-            end
-            resetCharacter(Client.Character)
-        else
-            for _, player in pairs(Players:GetPlayers()) do
-                handleCharacter(player.Character)
-            end
-            handleCharacter(Client.Character)
-        end
+        getgenv().range = value
     end
 })
 
-HitboxExpanderGroup:AddSlider("HitboxSize", {
-    Text = "Size",
-    Default = 10,
-    Min = 5,
-    Max = 20,
-    Callback = function(value)
-        size = value
-        if hitboxExpanderEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                handleCharacter(player.Character)
-            end
-            handleCharacter(Client.Character)
-        end
-    end
-})
-
-HitboxExpanderGroup:AddColorPicker("HitboxColor", {
-    Text = "Hitbox Color",
-    Default = Color3.fromRGB(0, 255, 255),
-    Callback = function(color)
-        hitboxColor = color
-        if hitboxExpanderEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                handleCharacter(player.Character)
-            end
-            handleCharacter(Client.Character)
-        end
-    end
-})
-
-HitboxExpanderGroup:AddToggle("VisualizeHitbox", {
-    Text = "Visualize Hitbox",
+KillAura:AddToggle('Visualizer', {
+    Text = 'Visualize',
     Default = false,
+    Callback = function(state)
+        getgenv().visualizeEnabled = state
+    end
+}):AddColorPicker('VisualizerColor', {
+    Text = 'Visualizer Color',
+    Default = Color3.new(1, 0, 0),
     Callback = function(value)
-        visualizeHitbox = value
-        if hitboxExpanderEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                handleCharacter(player.Character)
-            end
-            handleCharacter(Client.Character)
-        end
+        getgenv().tracer.Color = value
     end
 })
 
--- Cam Lock toggle
-CameraGroup:AddToggle("CamLockToggle", {
-    Text = "Cam Lock",
+KillAura:AddToggle('Silent', {
+    Text = 'Silent',
     Default = false,
-    Callback = function(value)
-        camLockEnabled = value
-        if not value then
-            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    Callback = function(state)
+        getgenv().silentEnabled = state
+    end
+})
+
+KillAura:AddInput('wlb', {
+    Default = '',
+    Numeric = false,
+    Finished = false,
+    Text = 'Add/Remove Player',
+    Tooltip = 'Type a name or display name to add/remove from whitelist',
+    Placeholder = 'Player Name',
+    Callback = function(input)
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Name == input or player.DisplayName == input then
+                if getgenv().whitelist[player.Name] then
+                    getgenv().whitelist[player.Name] = nil
+                    Library:Notify(player.Name .. " removed from whitelist.", 2)
+                else
+                    getgenv().whitelist[player.Name] = true
+                    Library:Notify(player.Name .. " added to whitelist.", 2)
+                end
+                return
+            end
         end
-    end
-})
-
-RunService.RenderStepped:Connect(function()
-    if camLockEnabled and lockedTarget and lockedTarget.Character then
-        local cam = workspace.CurrentCamera
-        local targetRoot = lockedTarget.Character:FindFirstChild("HumanoidRootPart")
-        if targetRoot then
-            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, targetRoot.Position), smoothness)
+        Library:Notify("Player not found.", 2)
+    end,
+    Autocomplete = function(input)
+        local suggestions = {}
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if string.find(string.lower(player.Name), string.lower(input)) or string.find(string.lower(player.DisplayName), string.lower(input)) then
+                table.insert(suggestions, player.Name .. " (" .. player.DisplayName .. ")")
+            end
         end
-    end
-end)
-
-
--- UI Settings Tab --
-
--- Watermark, Keybind List, Theme and Save Manager (unchanged default)
-
--- Watermark Toggle
-MenuGroup:AddToggle("WatermarkToggle", {
-    Text = "Watermark",
-    Default = true, -- Assuming you want the watermark to be on by default
-    Tooltip = "Toggle the visibility of the watermark.",
-    Callback = function(Value)
-        -- Assuming Library:SetWatermarkVisibility(Value) exists or similar
-        -- You would need to implement the actual watermark visibility logic here
-        -- For example, if your watermark is a UI element, you'd set its .Visible property
-        -- For now, this is a placeholder for where the logic would go.
-        print("Watermark visibility set to: " .. tostring(Value))
+        return suggestions
     end
 })
 
--- Keybind List Toggle
-MenuGroup:AddToggle("KeybindListToggle", {
-    Text = "Keybind List",
-    Default = true, -- Assuming you want the keybind list to be on by default
-    Tooltip = "Toggle the visibility of the keybind list.",
-    Callback = function(Value)
-        -- Assuming Library:SetKeybindListVisibility(Value) exists or similar
-        -- You would need to implement the actual keybind list visibility logic here
-        print("Keybind list visibility set to: " .. tostring(Value))
-    end
-})
+-- UI Settings Tab
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 
-MenuGroup:AddButton('Unload', function()
-    Library:Unload()
-end)
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' }) 
+
+Library.ToggleKeybind = Options.MenuKeybind
 
 ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings() 
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' }) 
+
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
+
+SaveManager:BuildConfigSection(Tabs['UI Settings']) 
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-SaveManager:SetLibrary(Library)
-SaveManager:BuildConfigSection(Tabs['UI Settings'])
+-- Main render loop
+RunService.RenderStepped:Connect(function()
+    if lockedTarget and lockedTarget.Character then
+        local targetPart = lockedTarget.Character:FindFirstChild(targetHitPart)
+        local bodyEffects = lockedTarget.Character:FindFirstChild("BodyEffects")
+        local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
+        local isGrabbed = lockedTarget.Character:FindFirstChild("GRABBING_CONSTRAINT")
 
-Library:Notify('Mad.lol loaded.', 4)
+        if ViewTargetEnabled then
+            workspace.CurrentCamera.CameraSubject = lockedTarget.Character
+        elseif spectateStrafeEnabled and strafeEnabled then
+            workspace.CurrentCamera.CameraSubject = lockedTarget.Character:FindFirstChild("Head")
+        end
+
+        if strafeEnabled and targetPart and not isGrabbed then
+            local targetRoot = lockedTarget.Character:FindFirstChild("HumanoidRootPart")
+            local targetPosition = targetRoot.Position
+
+            if predictMovementEnabled then
+                targetPosition = predictPosition(targetRoot, PredicTvalue)
+            end
+
+            if strafeMode == "Orbit" then
+                local angle = tick() * strafeSpeed
+                local offset = Vector3.new(math.cos(angle) * strafeXOffset, -0.1, math.sin(angle) * strafeXOffset)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition + offset, targetPosition)
+            elseif strafeMode == "Random" then
+                local offset = Vector3.new(math.random(-20, 20), math.random(-10, 10), math.random(-20, 20))
+                local randomrotation = CFrame.Angles(
+                    math.rad(math.random(0, 360)),
+                    math.rad(math.random(0, 360)),
+                    math.rad(math.random(0, 360))
+                )
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition + offset) * randomrotation
+            end
+        end
+
+        if TracerEnabled and targetPart then
+            tracer.Visible = true
+            local camera = workspace.CurrentCamera
+            local targetScreenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+            local endScreenPos
+
+            if targetToMouseTracer then
+                endScreenPos = UserInputService:GetMouseLocation()
+            else
+                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local rootScreenPos, rootOnScreen = camera:WorldToViewportPoint(rootPart.Position)
+                    if rootOnScreen then
+                        endScreenPos = Vector2.new(rootScreenPos.X, rootScreenPos.Y)
+                    end
+                end
+            end
+
+            if onScreen and endScreenPos then
+                tracer.From = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+                tracer.To = endScreenPos
+            else
+                tracer.Visible = false
+            end
+        else
+            tracer.Visible = false
+        end
+
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        local handle = tool and tool:FindFirstChild("Handle")
+        if tool and handle and targetPart and not isKO and not isGrabbed then
+            if hiddenBulletsEnabled then
+                ReplicatedStorage.MainEvent:FireServer(
+                    "ShootGun",
+                    handle,
+                    handle.CFrame.Position - Vector3.new(0, 10, 0),
+                    targetPart.Position - Vector3.new(0, 10, 0),
+                    targetPart,
+                    Vector3.new(0, 0, -1))
+            else
+                ReplicatedStorage.MainEvent:FireServer(
+                    "ShootGun",
+                    handle,
+                    handle.CFrame.Position,
+                    targetPart.Position,
+                    targetPart,
+                    Vector3.new(0, 0, -1))
+            end
+        end
+    else
+        tracer.Visible = false
+    end
+end)
+
+-- Kill Aura loop
+task.spawn(function()
+    while true do
+        if getgenv().active and getgenv().enabled and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool") and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle") then
+            if workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name) and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name):FindFirstChild("BodyEffects") and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name).BodyEffects:FindFirstChild("K.O") and workspace.Players:FindFirstChild(game.Players.LocalPlayer.Name).BodyEffects["K.O"].Value then
+                task.wait()
+            else
+                local closest = math.huge
+                target = nil
+
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player ~= game.Players.LocalPlayer and not getgenv().whitelist[player.Name] and player.Character and player.Character:FindFirstChild("Head") and not player.Character:FindFirstChild("GRABBING_CONSTRAINT") then
+                        if workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild(player.Name) and workspace.Players:FindFirstChild(player.Name):FindFirstChild("BodyEffects") and workspace.Players:FindFirstChild(player.Name).BodyEffects:FindFirstChild("K.O") and not workspace.Players:FindFirstChild(player.Name).BodyEffects["K.O"].Value then
+                            local dist = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - player.Character.Head.Position).Magnitude
+                            if dist < closest and dist <= getgenv().range then
+                                closest = dist
+                                target = player
+                            end
+                        end
+                    end
+                end
+
+                if target and target.Character and target.Character:FindFirstChild("Head") then
+                    if getgenv().visualizeEnabled then
+                        getgenv().tracer.Transparency = 0
+                        getgenv().tracer.Size = Vector3.new(0.2, 0.2, (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - target.Character.Head.Position).Magnitude)
+                        getgenv().tracer.CFrame = CFrame.lookAt(game.Players.LocalPlayer.Character.HumanoidRootPart.Position, target.Character.Head.Position) * CFrame.new(0, 0, -getgenv().tracer.Size.Z / 2)
+                    else
+                        getgenv().tracer.Transparency = 1
+                    end
+
+                    if getgenv().silentEnabled then
+                        game.ReplicatedStorage.MainEvent:FireServer(
+                            "ShootGun",
+                            game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle"),
+                            game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle").CFrame.Position - Vector3.new(0, 12, 0),
+                            target.Character.Head.Position - Vector3.new(0, 12, 0),
+                            target.Character.Head,
+                            Vector3.new(0, 0, -1)
+                        )
+                    else
+                        game.ReplicatedStorage.MainEvent:FireServer("ShootGun", game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle"), game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Handle").CFrame.Position, target.Character.Head.Position, target.Character.Head, Vector3.new(0, 0, -1))
+                    end
+                else
+                    getgenv().tracer.Transparency = 1
+                end
+            end
+        else
+            getgenv().tracer.Transparency = 1
+        end
+        task.wait()
+    end
+end)
+
+-- Stomp loop
+task.spawn(function()
+    while true do
+        if stompTargetEnabled and lockedTarget and lockedTarget ~= LocalPlayer then
+            local character = lockedTarget.Character
+            if character then
+                local bodyEffects = character:FindFirstChild("BodyEffects")
+                local isKO = bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value
+                local isSDeath = bodyEffects and bodyEffects:FindFirstChild("SDeath") and bodyEffects["SDeath"].Value
+
+                if isKO and not isSDeath then
+                    local upperTorso = character:FindFirstChild("UpperTorso")
+                    if upperTorso then
+                        local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+                        if not lastPosition then
+                            lastPosition = humanoidRootPart.Position
+                        end
+                        humanoidRootPart.CFrame = CFrame.new(upperTorso.Position + Vector3.new(0, 3, 0))
+                        RunService.RenderStepped:Wait()
+                    end
+                elseif isSDeath and lastPosition then
+                    if killSayEnabled then
+                        local message = killSayMessages[math.random(1, #killSayMessages)]
+                        game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+                    end
+                    local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+                    while (humanoidRootPart.Position - lastPosition).Magnitude > 5 do
+                        humanoidRootPart.CFrame = CFrame.new(lastPosition)
+                        task.wait()
+                    end
+                    lastPosition = nil
+                end
+            else
+                if lastPosition then
+                    local humanoidRootPart = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+                    while (humanoidRootPart.Position - lastPosition).Magnitude > 5 do
+                        humanoidRootPart.CFrame = CFrame.new(lastPosition)
+                        task.wait()
+                    end
+                    lastPosition = nil
+                end
+            end
+            ReplicatedStorage.MainEvent:FireServer("Stomp")
+        end
+        task.wait(0)
+    end
+end)
