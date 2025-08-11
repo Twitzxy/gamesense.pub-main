@@ -334,7 +334,7 @@ local function playHitsound()
 end
 
 local function predictPosition(targetRoot, predictionMultiplier)
-    if not targetRoot then return targetRoot.Position end
+    if not targetRoot then return nil end
     if targetRoot.Velocity.Magnitude > 700 then
         return targetRoot.Position
     end
@@ -572,7 +572,8 @@ RunService.RenderStepped:Connect(function()
     
     -- World Customization
     if WorldSettings.Enabled then
-        Lighting.ColorCorrection.TintColor = WorldSettings.BarsColor
+        local cce = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
+        cce.TintColor = WorldSettings.BarsColor
         
         local Bars = LocalPlayer.PlayerGui:FindFirstChild('MainScreenGui') and LocalPlayer.PlayerGui.MainScreenGui:FindFirstChild('Bar')
         if Bars and WorldSettings.Bars then
@@ -666,7 +667,7 @@ killAuraTracer.Thickness = 1
 killAuraTracer.Color = Color3.fromRGB(255, 0, 0)
 
 function predictPosition(targetRoot, predictionMultiplier)
-    if not targetRoot then return targetRoot.Position end
+    if not targetRoot then return nil end
     if targetRoot.Velocity.Magnitude > 700 then
         return targetRoot.Position
     end
@@ -1398,7 +1399,7 @@ RunService.Heartbeat:Connect(function()
             desync.old_position = rootPart.CFrame
 
             if desync.mode == "Destroy Cheaters" then
-                desync.teleportPosition = Vector3.new(11223344556677889900, 1, 1)
+                desync.teleportPosition = Vector3.new(10000, 1, 1)
 
             elseif desync.mode == "Underground" then
                 desync.teleportPosition = rootPart.Position - Vector3.new(0, 12, 0)
@@ -1470,7 +1471,10 @@ RunService.RenderStepped:Connect(function()
             local targetPosition = targetRoot.Position
 
             if predictMovementEnabled then
-                targetPosition = predictPosition(targetRoot, PredicTvalue)
+                local predicted = predictPosition(targetRoot, PredicTvalue)
+                if predicted then
+                    targetPosition = predicted
+                end
             end
 
             if strafeMode == "Orbit" then
@@ -1508,8 +1512,7 @@ RunService.RenderStepped:Connect(function()
             if targetToMouseTracer then
                 endScreenPos = UserInputService:GetMouseLocation()
             else
-                local rootPart = LocalPlayer.Character and LocalPlayer
-                                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if rootPart then
                     local rootScreenPos = camera:WorldToViewportPoint(rootPart.Position)
                     endScreenPos = Vector2.new(rootScreenPos.X, rootScreenPos.Y)
@@ -1532,7 +1535,10 @@ RunService.RenderStepped:Connect(function()
             local camera = workspace.CurrentCamera
             local targetPos = targetPart.Position
             if predictMovementEnabled then
-                targetPos = predictPosition(lockedTarget.Character:FindFirstChild("HumanoidRootPart"), PredicTvalue)
+                local predicted = predictPosition(lockedTarget.Character:FindFirstChild("HumanoidRootPart"), PredicTvalue)
+                if predicted then
+                    targetPos = predicted
+                end
             end
             camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
         end
@@ -1574,8 +1580,11 @@ RunService.RenderStepped:Connect(function()
                         getgenv().tracer.Transparency = 0.5
                         getgenv().tracer.CFrame = CFrame.new(targetRoot.Position)
                         killAuraTracer.Visible = true
-                        killAuraTracer.From = Vector2.new(rootPart.Position.X, rootPart.Position.Y)
-                        killAuraTracer.To = Vector2.new(targetRoot.Position.X, targetRoot.Position.Y)
+                        local camera = workspace.CurrentCamera
+                        local from2D = camera:WorldToViewportPoint(rootPart.Position)
+                        local to2D = camera:WorldToViewportPoint(targetRoot.Position)
+                        killAuraTracer.From = Vector2.new(from2D.X, from2D.Y)
+                        killAuraTracer.To = Vector2.new(to2D.X, to2D.Y)
                     else
                         getgenv().tracer.Transparency = 1
                         killAuraTracer.Visible = false
@@ -1604,29 +1613,37 @@ RunService.RenderStepped:Connect(function()
         local character = LocalPlayer.Character
         local hasLowAmmo = false
 
-        -- Check for low ammo
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:FindFirstChild("Ammo") and tool.Ammo.Value < 5 then
-                hasLowAmmo = true
-                break
+        if backpack then
+            for _, tool in ipairs(backpack:GetChildren()) do
+                local ammo = tool:FindFirstChild("Ammo")
+                if ammo and ammo:IsA("ValueBase") and ammo.Value < 5 then
+                    hasLowAmmo = true
+                    break
+                end
             end
         end
 
         if hasLowAmmo then
-            -- Save strafe state if needed
             if strafeEnabled then
                 strafeWasEnabledBeforeAmmoBuy = true
                 strafeEnabled = false
             end
 
-            -- Teleport to ammo store (replace with actual coordinates)
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(100, 5, 100) -- Example coordinates
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(100, 5, 100)
+            end
 
-            -- Simulate buying ammo
-            wait(1)
-            fireclickdetector(game:GetService("Workspace").AmmoStore.ClickDetector)
+            if task and task.wait then task.wait(1) else wait(1) end
 
-            -- Restore strafe state
+            local ammoStore = workspace:FindFirstChild("AmmoStore")
+            if ammoStore then
+                local cd = ammoStore:FindFirstChildOfClass("ClickDetector") or ammoStore:FindFirstChild("ClickDetector")
+                if cd and typeof(fireclickdetector) == "function" then
+                    fireclickdetector(cd)
+                end
+            end
+
             if strafeWasEnabledBeforeAmmoBuy then
                 strafeEnabled = true
                 strafeWasEnabledBeforeAmmoBuy = false
