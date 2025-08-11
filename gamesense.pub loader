@@ -1,60 +1,158 @@
--- // Load Linoria UI Library
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
+local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 
--- // Create Window
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+
 local Window = Library:CreateWindow({
-    Title = 'Gamesense-Inspired UI',
+    Title = 'gamesense', -- Renamed title here
     Center = true,
     AutoShow = true,
-    TabPadding = 8
+    TabPadding = 8,
+    MenuFadeTime = 0.2
 })
 
--- // Create Tabs
-local MainTab = Window:AddTab('Main')
-local AimbotTab = Window:AddTab('Aimbot')
-local VisualsTab = Window:AddTab('Visuals')
-local MiscTab = Window:AddTab('Misc')
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
 
--- // Add Groups & Elements
-do
-    local MainGroup = MainTab:AddLeftGroupbox('General Settings')
-    MainGroup:AddLabel('Welcome to the Main Tab!')
-    MainGroup:AddToggle('ExampleToggle', { Text = 'Enable Feature', Default = false })
-    MainGroup:AddSlider('ExampleSlider', { Text = 'Speed', Min = 0, Max = 100, Default = 50 })
+local localPlayer = Players.LocalPlayer
+
+-- Get game name asynchronously
+local GameName = "Loading..."
+local success, productInfo = pcall(function()
+    return MarketplaceService:GetProductInfo(game.PlaceId)
+end)
+
+if success and productInfo and productInfo.Name then
+    GameName = productInfo.Name
+else
+    GameName = "Unknown Game"
 end
 
-do
-    local AimbotGroup = AimbotTab:AddLeftGroupbox('Aimbot Settings')
-    AimbotGroup:AddToggle('AimbotEnabled', { Text = 'Enable Aimbot', Default = false })
-    AimbotGroup:AddSlider('AimbotFOV', { Text = 'FOV', Min = 0, Max = 360, Default = 90 })
-end
+-- FPS tracking setup
+local FrameTimer = tick()
+local FrameCounter = 0
+local FPS = 60
 
-do
-    local VisualsGroup = VisualsTab:AddLeftGroupbox('Visuals Settings')
-    VisualsGroup:AddLabel('Visual Enhancements (Coming Soon)')
-    VisualsGroup:AddToggle('ESP', { Text = 'Enable ESP', Default = false })
-end
+local WatermarkConnection = RunService.RenderStepped:Connect(function()
+    FrameCounter += 1
 
-do
-    local MiscGroup = MiscTab:AddLeftGroupbox('Miscellaneous')
-    MiscGroup:AddToggle('Bhop', { Text = 'Bunny Hop', Default = false })
-    MiscGroup:AddSlider('Volume', { Text = 'Volume', Min = 0, Max = 100, Default = 50 })
-end
+    if (tick() - FrameTimer) >= 1 then
+        FPS = FrameCounter
+        FrameTimer = tick()
+        FrameCounter = 0
+    end
 
--- // Theme + Save Managers
+    local Ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+
+    Library:SetWatermark(('%s | %s | %d FPS | %d ms'):format(
+        localPlayer.Name,
+        GameName,
+        FPS,
+        Ping
+    ))
+end)
+
+Library.KeybindFrame.Visible = true
+
+Library:OnUnload(function()
+    WatermarkConnection:Disconnect()
+    print('Unloaded!')
+    Library.Unloaded = true
+end)
+
+local Tabs = {
+    Rage = Window:AddTab('Rage'),
+    Visuals = Window:AddTab('Visuals'),
+    Misc = Window:AddTab('Misc'),
+    ['UI Settings'] = Window:AddTab('UI Settings'), -- always at bottom
+}
+
+-- Example groupbox on Rage tab for demonstration
+local RageGroupBox = Tabs.Rage:AddLeftGroupbox('Rage Settings')
+
+-- Example toggle in Rage tab
+RageGroupBox:AddToggle('EnableRage', {
+    Text = 'Enable Rage',
+    Default = false,
+    Tooltip = 'Toggle Rage features',
+    Callback = function(Value)
+        print('[Rage] Enable Rage:', Value)
+    end
+})
+
+-- Example groupbox on Visuals tab
+local VisualsGroupBox = Tabs.Visuals:AddLeftGroupbox('Visual Settings')
+
+VisualsGroupBox:AddToggle('EnableVisuals', {
+    Text = 'Enable Visuals',
+    Default = true,
+    Tooltip = 'Toggle Visual features',
+    Callback = function(Value)
+        print('[Visuals] Enable Visuals:', Value)
+    end
+})
+
+-- Example groupbox on Misc tab
+local MiscGroupBox = Tabs.Misc:AddLeftGroupbox('Misc Settings')
+
+MiscGroupBox:AddToggle('EnableMisc', {
+    Text = 'Enable Misc',
+    Default = false,
+    Tooltip = 'Toggle Misc features',
+    Callback = function(Value)
+        print('[Misc] Enable Misc:', Value)
+    end
+})
+
+-- UI Settings tab groupbox for Menu controls
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+
+MenuGroup:AddButton('Unload', function()
+    Library:Unload()
+end)
+
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
+    Default = 'End',
+    NoUI = true,
+    Text = 'Menu keybind'
+})
+
+Library.ToggleKeybind = Options.MenuKeybind
+
+-- Keybind List toggle groupbox
+local KeybindsGroup = Tabs['UI Settings']:AddLeftGroupbox('Keybinds')
+
+KeybindsGroup:AddToggle('ShowKeybindList', {
+    Text = 'Show Keybind List',
+    Default = true,
+    Tooltip = 'Toggle visibility of the keybind list',
+    Callback = function(value)
+        Library.KeybindFrame.Visible = value
+    end
+})
+
+
+-- Hand the library over to ThemeManager and SaveManager
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 
+-- Ignore theme settings in save manager (optional)
 SaveManager:IgnoreThemeSettings()
+
+-- Ignore the menu keybind from saving (to avoid conflicts)
 SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
 
-ThemeManager:SetFolder('MyGameSenseUI')
-SaveManager:SetFolder('MyGameSenseUI')
+-- Set folders for saving configs and themes
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
 
-SaveManager:BuildConfigSection(Window)
-ThemeManager:ApplyToTab(Window:AddTab('UI Settings'))
+-- Build config section and apply theme to the UI Settings tab
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
--- // Keybind to toggle menu
-Library.ToggleKeybind = Enum.KeyCode.RightShift
+-- Load autoloaded config if exists
+SaveManager:LoadAutoloadConfig()
+
