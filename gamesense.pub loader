@@ -1497,7 +1497,8 @@ RunService.RenderStepped:Connect(function()
             if not getgenv().lastHealth[lockedTarget.Name] then
                 getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
             end
-            if humanoid.Health < getgenv().lastHealth[lockedTarget.Name] then
+            local lastHealth = getgenv().lastHealth[lockedTarget.Name]
+            if lastHealth and humanoid.Health < lastHealth then
                 playHitsound()
             end
             getgenv().lastHealth[lockedTarget.Name] = humanoid.Health
@@ -1665,7 +1666,8 @@ RunService.RenderStepped:Connect(function()
                         getgenv().lastHealth[player.Name] = humanoid.Health
                     end
                     
-                    if humanoid.Health <= 0 and getgenv().lastHealth[player.Name] > 0 then
+                    local lastHealth = getgenv().lastHealth[player.Name]
+                    if humanoid.Health <= 0 and lastHealth and lastHealth > 0 then
                         local message = killSayMessages[math.random(1, #killSayMessages)]
                         game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
                     end
