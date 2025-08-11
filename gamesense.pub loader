@@ -1558,7 +1558,7 @@ RunService.RenderStepped:Connect(function()
     if getgenv().enabled and getgenv().active and LocalPlayer.Character then
         local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            local closestPlayer, closestDistance = nil, getgenv().range
+            local closestPlayer, closestDistance = nil, tonumber(getgenv().range) or math.huge
 
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character and not getgenv().whitelist[player.Name] then
@@ -1616,9 +1616,12 @@ RunService.RenderStepped:Connect(function()
         if backpack then
             for _, tool in ipairs(backpack:GetChildren()) do
                 local ammo = tool:FindFirstChild("Ammo")
-                if ammo and ammo:IsA("ValueBase") and ammo.Value < 5 then
-                    hasLowAmmo = true
-                    break
+                if ammo and ammo:IsA("ValueBase") then
+                    local ammoValue = tonumber(ammo.Value)
+                    if ammoValue and ammoValue < 5 then
+                        hasLowAmmo = true
+                        break
+                    end
                 end
             end
         end
