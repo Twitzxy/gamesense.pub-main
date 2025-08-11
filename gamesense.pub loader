@@ -1558,7 +1558,8 @@ RunService.RenderStepped:Connect(function()
     if getgenv().enabled and getgenv().active and LocalPlayer.Character then
         local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            local closestPlayer, closestDistance = nil, tonumber(getgenv().range) or math.huge
+            local rangeValue = tonumber(getgenv().range)
+            local closestPlayer, closestDistance = nil, (rangeValue and rangeValue > 0) and rangeValue or math.huge
 
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character and not getgenv().whitelist[player.Name] then
